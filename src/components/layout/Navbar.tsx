@@ -17,7 +17,7 @@ export default function Navbar() {
         </div>
 
         <h1 className="font-bold text-lg">
-          Nimbus Cargo
+        Nimbus <span className="text-orange-500">Cargo Express</span>
         </h1>
       </div>
 

@@ -6,7 +6,7 @@ export default function Hero() {
       <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-10 items-center">
         <div>
           <h1 className="text-4xl md:text-5xl font-bold mb-4">
-            Nimbus Cargo Express
+            Nimbus <span className="text-orange-400">Cargo Express</span>
           </h1>
           <p className="mb-6 text-lg">
             Solusi logistik udara cepat, aman, dan terpercaya.
