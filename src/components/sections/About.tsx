@@ -18,7 +18,7 @@ export default function About() {
           {/* KIRI: GAMBAR */}
           <div>
             <Image
-              src="/image/aircraft/plane1.jpg"
+              src="/image/aircraft/plane.jpg"
               alt="Pesawat Kargo"
               width={600}
               height={400}
