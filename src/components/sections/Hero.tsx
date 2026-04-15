@@ -16,7 +16,7 @@ export default function Hero() {
           </button>
         </div>
 
-        <div className="flex justify-center">
+        <div className="flex justify-end rounded-lg shadow-flex hover:scale-105 transition duration-300">
           <Image src="/logo.png" alt="logo" width={300} height={300} className="rounded-2xl"/>
         </div>
       </div>

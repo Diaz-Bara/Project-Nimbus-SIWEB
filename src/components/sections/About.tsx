@@ -22,7 +22,7 @@ export default function About() {
               alt="Pesawat Kargo"
               width={400}
               height={300}
-              className="rounded-lg shadow-md"
+              className="rounded-lg shadow-flex hover:scale-105 transition duration-300"
             />
           </div>
 
