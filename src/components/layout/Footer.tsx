@@ -9,7 +9,7 @@ export default function Footer() {
             Nimbus <span className="text-orange-400">Cargo Express</span>
           </h2>
           <p className="text-sm text-gray-300">
-            Solusi pengiriman kargo udara cepat, aman, dan terpercaya di seluruh Asia.
+            Solusi pengiriman kargo udara cepat, aman, dan terpercaya di seluruh Indonesia.
           </p>
         </div>
 
