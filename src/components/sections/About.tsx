@@ -20,8 +20,8 @@ export default function About() {
             <Image
               src="/image/aircraft/plane.jpg"
               alt="Pesawat Kargo"
-              width={600}
-              height={400}
+              width={400}
+              height={300}
               className="rounded-lg shadow-md"
             />
           </div>

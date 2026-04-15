@@ -11,7 +11,7 @@ export default function History() {
         <div className="w-16 h-1 bg-orange-400 mx-auto mt-2 mb-8 rounded"></div>
 
         {/* Card */}
-        <div className="bg-white p-8 rounded-2xl shadow-md text-gray-600 leading-relaxed">
+        <div className="bg-white p-8 rounded-2xl shadow-md text-gray-600 leading-relaxed text-left">
           
           <p className="mb-4">
             Didirikan pada tahun 2015, Nimbus Cargo Express lahir dari visi
