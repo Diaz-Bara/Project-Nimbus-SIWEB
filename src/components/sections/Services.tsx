@@ -28,7 +28,7 @@ export default function Services() {
   ];
 
   return (
-    <section id="layanan" className="py-20 bg-gray-200 scroll-mt-40">
+    <section id="Services" className="py-20 bg-gray-200 scroll-mt-40">
       <div className="max-w-6xl mx-auto px-6 text-center">
 
         {/* TITLE */}
