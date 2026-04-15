@@ -1,0 +1,44 @@
+export default function Footer() {
+  return (
+    <footer className="bg-blue-900 text-white pt-12 pb-6 px-6">
+      <div className="max-w-6xl mx-auto grid md:grid-cols-3 gap-8">
+
+        {/* BRAND */}
+        <div>
+          <h2 className="font-bold text-lg mb-2">
+            Nimbus <span className="text-orange-400">Cargo Express</span>
+          </h2>
+          <p className="text-sm text-gray-300">
+            Solusi pengiriman kargo udara cepat, aman, dan terpercaya di seluruh Asia.
+          </p>
+        </div>
+
+        {/* KONTAK */}
+        <div>
+          <h3 className="font-semibold mb-3">Kontak Cepat</h3>
+          <p className="text-sm text-gray-300">contact@nimbuscargo.com</p>
+          <p className="text-sm text-gray-300">+62 21 5555 1234</p>
+          <p className="text-sm text-gray-300">Jakarta, Indonesia</p>
+        </div>
+
+        {/* NAVIGASI */}
+        <div>
+          <h3 className="font-semibold mb-3">Navigasi</h3>
+          <ul className="space-y-1 text-gray-300 text-sm">
+            <li><a href="#home">Beranda</a></li>
+            <li><a href="#About">Tentang</a></li>
+            <li><a href="#Services">Layanan</a></li>
+            <li><a href="#Clients">Klien</a></li>
+            <li><a href="#Contact">Kontak</a></li>
+          </ul>
+        </div>
+
+      </div>
+
+      {/* COPYRIGHT */}
+      <div className="text-center text-gray-400 text-sm mt-10 border-t border-gray-700 pt-4">
+        © 2026 Nimbus Cargo Express — All rights reserved.
+      </div>
+    </footer>
+  );
+}
