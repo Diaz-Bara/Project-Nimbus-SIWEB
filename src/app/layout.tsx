@@ -1,21 +1,31 @@
+"use client";
 import "./globals.css";
-import Navbar from "../components/layout/Navbar";
 import Footer from "@/components/layout/Footer";
+import Navbar from "@/components/layout/Navbar";
+import { usePathname } from "next/navigation";
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const pathname = usePathname();
+
+  const hideRoutes = ["/dashboard", "/login", "/register"];
+
+  const hideLayout = hideRoutes.some((route) =>
+    pathname.includes(route)
+  );
+
   return (
-    <html lang="en" className="scroll-smooth">
-      <body>
-        <Navbar />
-        {children}
-        <Footer />
+    <html lang="en">
+      <body className="min-h-screen flex flex-col">
+
+        {!hideLayout && <Navbar />}
+
+        <main className="flex-1">
+          {children}
+        </main>
+
+        {!hideLayout && <Footer />}
+
       </body>
     </html>
   );
 }
-
-<html lang="en" className="scroll-smooth"></html>

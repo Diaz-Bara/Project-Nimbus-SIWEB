@@ -7,15 +7,7 @@ import Clients from "@/components/sections/Clients";
 import Contact from "@/components/sections/Contact";
 
 export default function Home() {
-  return (
-    <main>
-      <Hero />
-      <About />
-      <History />
-      <VisionMission />
-      <Services />
-      <Clients />
-      <Contact />
-    </main>
-  );
+  return <Hero />;
 }
+
+

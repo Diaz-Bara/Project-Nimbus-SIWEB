@@ -1,53 +1,51 @@
+"use client";
+
+import Link from "next/link";
 import Image from "next/image";
+import { usePathname } from "next/navigation";
 
 export default function Navbar() {
-  return (
-    <nav className="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-6 py-4 bg-white shadow-md">
-      
-      {/* KIRI: LOGO + NAMA */}
-      <div className="flex items-center gap-3">
-        <div className="bg-white p-1 rounded-xl shadow-md hover:shadow-lg transition">
-          <Image
-            src="/logo.png"
-            alt="logo"
-            width={40}
-            height={40}
-            className="rounded-lg"
-          />
-        </div>
+  const pathname = usePathname();
 
-        <h1 className="font-bold text-lg">
-        Nimbus <span className="text-orange-500">Cargo Express</span>
+  const menu = [
+    { name: "Beranda", path: "/" },
+    { name: "Tentang", path: "/Tentang" },
+    { name: "Layanan", path: "/Layanan" },
+    { name: "Klien", path: "/Klien" },
+    { name: "Kontak", path: "/Kontak" },
+  ];
+
+  return (
+    <nav className="fixed top-0 left-0 w-full z-50 bg-white shadow-md px-6 py-4 flex justify-between items-center">
+      
+      <div className="flex items-center gap-2">
+        <Image src="/logo.png" alt="logo" width={40} height={40} />
+        <h1 className="font-bold whitespace-nowrap">
+          Nimbus <span className="text-orange-400">Cargo Express</span>
         </h1>
       </div>
 
-       {/* TENGAH: MENU */}
-      <div className="flex-1 flex justify-center space-x-6">
-        <a href="#home" className="hover:text-blue-600">
-          Beranda
-        </a>
-        <a href="#About" className="hover:text-blue-600">
-          Tentang
-        </a>
-        <a href="#Services" className="hover:text-blue-600">
-          Layanan
-        </a>
-        <a href="#Clients" className="hover:text-blue-600">
-          Klien
-        </a>
-        <a href="#Contact" className="hover:text-blue-600">
-          Kontak
-        </a>
+      <div className="flex gap-6">
+        {menu.map((item) => (
+          <Link
+            key={item.path}
+            href={item.path}
+            className={`transition ${
+              pathname === item.path
+                ? "text-orange-400 font-semibold"
+                : "text-gray-700 hover:text-orange-400"
+            }`}
+          >
+            {item.name}
+          </Link>
+        ))}
       </div>
 
-      <div>
-        <button className="bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition">
+      <Link href="/login">
+         <button className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition">
           Login
         </button>
-      </div>
-
+      </Link>
     </nav>
   );
 }
-
- 

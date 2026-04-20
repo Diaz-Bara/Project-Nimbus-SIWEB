@@ -9,29 +9,18 @@ export default function Footer() {
             Nimbus <span className="text-orange-400">Cargo Express</span>
           </h2>
           <p className="text-sm text-gray-300">
-            Solusi pengiriman kargo udara cepat, aman, dan terpercaya di seluruh Indonesia.
+            ⚡Solusi pengiriman kargo udara cepat, aman, dan terpercaya di seluruh Indonesia. ⚡
           </p>
         </div>
 
         {/* KONTAK */}
         <div>
           <h3 className="font-semibold mb-3">Kontak Cepat</h3>
-          <p className="text-sm text-gray-300">contact@nimbuscargo.com</p>
-          <p className="text-sm text-gray-300">+62 21 5555 1234</p>
-          <p className="text-sm text-gray-300">Jakarta, Indonesia</p>
+          <p className="text-sm text-gray-300">☎️ contact@nimbuscargo.com</p>
+          <p className="text-sm text-gray-300">📞 +62 21 5555 1234</p>
+          <p className="text-sm text-gray-300">📍 Yogyakarta, Indonesia</p>
         </div>
 
-        {/* NAVIGASI */}
-        <div>
-          <h3 className="font-semibold mb-3">Navigasi</h3>
-          <ul className="space-y-1 text-gray-300 text-sm">
-            <li><a href="#home">Beranda</a></li>
-            <li><a href="#About">Tentang</a></li>
-            <li><a href="#Services">Layanan</a></li>
-            <li><a href="#Clients">Klien</a></li>
-            <li><a href="#Contact">Kontak</a></li>
-          </ul>
-        </div>
 
       </div>
 
