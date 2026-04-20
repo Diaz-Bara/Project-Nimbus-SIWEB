@@ -16,7 +16,7 @@ export default function LoginPage() {
     const password = passwordRef.current?.value;
 
     const admin = {
-      email: "admin@nimbus.com",
+      email: "admin",
       password: "admin123",
       role: "admin",
     };
@@ -45,7 +45,7 @@ export default function LoginPage() {
 
         {/* TITLE */}
         <h2 className="text-center font-semibold text-gray-700 mb-1">
-          Operator Login
+          Login
         </h2>
         <p className="text-center text-xs text-gray-400 mb-4">
           Enter your credentials to access the system

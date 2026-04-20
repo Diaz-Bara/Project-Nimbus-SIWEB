@@ -1,3 +1,4 @@
+import Link from "next/dist/client/link";
 import Image from "next/image";
 
 export default function Hero() {
@@ -39,9 +40,14 @@ export default function Hero() {
             dengan jangkauan luas ke seluruh Indonesia dan mancanegara.
           </p>
 
-          <button className="bg-orange-400 hover:bg-orange-500 text-black px-6 py-3 rounded-xl font-semibold shadow-md transition">
-            Tracking Sekarang
-          </button>
+        
+            <Link
+                href="/tracking"
+                 className="inline-block bg-orange-400 hover:bg-orange-500 text-black px-6 py-3 rounded-xl font-semibold shadow-md transition"
+              >
+                Tracking Sekarang <span className="ml-2"></span>
+            </Link>
+    
         </div>
 
         {/* RIGHT */}

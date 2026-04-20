@@ -4,12 +4,12 @@ export default function Topbar() {
 
       <input
         placeholder="Search..."
-        className="w-1/2 px-4 py-2 rounded-lg border"
+        className="w-5/6 px-4 py-2 rounded-lg border"
       />
 
       <div className="text-sm">
-        Ops. Chief<br />
-        <span className="text-gray-400">ID: EPX-02</span>
+        Admin 👤<br />
+        <span className="text-gray-400">ID: ADM-01</span>
       </div>
 
     </div>

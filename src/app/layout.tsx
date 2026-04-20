@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
 
-  const hideRoutes = ["/dashboard", "/login", "/register"];
+  const hideRoutes = ["/dashboard", "/login", "/register", "/TrackingAdmin", "/tracking", "/shipments", "/flights", "/users"];
 
   const hideLayout = hideRoutes.some((route) =>
     pathname.includes(route)
