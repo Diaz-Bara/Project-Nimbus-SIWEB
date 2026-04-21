@@ -15,14 +15,29 @@ export default function LoginPage() {
     const email = emailRef.current?.value;
     const password = passwordRef.current?.value;
 
-    const admin = {
-      email: "admin",
-      password: "admin123",
-      role: "admin",
-    };
+    // 🔥 MULTI USER (ADMIN + OPERATOR)
+    const users = [
+      {
+        email: "admin",
+        password: "admin123",
+        role: "admin",
+      },
+      {
+        email: "operator",
+        password: "operator123",
+        role: "operator",
+      },
+    ];
 
-    if (email === admin.email && password === admin.password) {
-      localStorage.setItem("user", JSON.stringify(admin));
+    const foundUser = users.find(
+      (u) => u.email === email && u.password === password
+    );
+
+    if (foundUser) {
+      // simpan user ke localStorage
+      localStorage.setItem("user", JSON.stringify(foundUser));
+
+      // redirect (semua ke dashboard dulu)
       router.push("/dashboard");
     } else {
       alert("Email atau password salah!");
@@ -51,10 +66,10 @@ export default function LoginPage() {
           Enter your credentials to access the system
         </p>
 
-        {/* INPUT */}
+        {/* INPUT (TIDAK DIUBAH UI) */}
         <input
           ref={emailRef}
-          type="email"
+          type="text"
           placeholder="Email or Username"
           className="w-full border rounded-lg px-3 py-2 mb-3 text-sm"
         />
@@ -85,6 +100,7 @@ export default function LoginPage() {
           LOGIN
         </button>
 
+        {/* CREATE ACCOUNT */}
         <Link href="/register">
           <button className="w-full border py-2 rounded-lg text-sm">
             Create Account

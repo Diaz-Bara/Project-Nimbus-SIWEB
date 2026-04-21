@@ -1,39 +1,56 @@
 "use client";
 
 import Image from "next/image";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
 
 export default function Sidebar() {
   const [open, setOpen] = useState(true);
+  const [user, setUser] = useState<any>(null);
+
   const pathname = usePathname();
   const router = useRouter();
+
+  // 🔥 ambil user dari localStorage (biar aman dari SSR)
+  useEffect(() => {
+    const storedUser = JSON.parse(localStorage.getItem("user") || "null");
+    setUser(storedUser);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("user");
     router.push("/");
   };
 
-  const menu = [
+  // 🔥 BASE MENU (semua role)
+  const baseMenu = [
     { name: "Dashboard", icon: "📊", path: "/dashboard" },
-    { name: "Shipments", icon: "📦", path: "/shipments" },
     { name: "Tracking Logs", icon: "📄", path: "/TrackingAdmin" },
     { name: "Flights", icon: "✈️", path: "/flights" },
+  ];
+
+  // 🔥 ADMIN ONLY MENU
+  const adminMenu = [
+    { name: "Shipments", icon: "📦", path: "/shipments" },
     { name: "Users", icon: "👤", path: "/users" },
   ];
+
+  // 🔥 FINAL MENU (role-based)
+  const menu =
+    user?.role === "admin"
+      ? [...baseMenu, ...adminMenu]
+      : baseMenu;
 
   return (
     <div
       className={`relative h-screen transition-all duration-300 ease-in-out
       ${open ? "w-64" : "w-20"}
-      
       bg-white/70 backdrop-blur-xl border-r border-white/20 shadow-lg`}
     >
 
-      {/*  LOGO */}
+      {/* LOGO */}
       <div className="flex items-center gap-3 px-4 pt-5 mb-8">
-
         <div className="bg-white/80 backdrop-blur-md p-2 rounded-xl shadow">
           <Image src="/logo.png" alt="logo" width={26} height={26} />
         </div>
@@ -53,7 +70,7 @@ export default function Sidebar() {
         )}
       </div>
 
-      {/*  MENU */}
+      {/* MENU */}
       <ul className="space-y-2 px-2">
         {menu.map((item) => {
           const active = pathname === item.path;
@@ -66,9 +83,11 @@ export default function Sidebar() {
                   ${open ? "px-4 justify-start" : "justify-center"}
                   py-3 rounded-xl transition-all duration-300
                   
-                  ${active
-                    ? "bg-blue-500/20 text-blue-700 backdrop-blur-md shadow-inner"
-                    : "hover:bg-white/50 hover:backdrop-blur-md"}
+                  ${
+                    active
+                      ? "bg-blue-500/20 text-blue-700 backdrop-blur-md shadow-inner"
+                      : "hover:bg-white/50 hover:backdrop-blur-md"
+                  }
                 `}
               >
                 {/* ICON */}
@@ -96,7 +115,7 @@ export default function Sidebar() {
         })}
       </ul>
 
-      {/*  TOGGLE BUTTON */}
+      {/* TOGGLE BUTTON */}
       <button
         onClick={() => setOpen(!open)}
         className="absolute top-1/2 -right-3 -translate-y-1/2 
@@ -113,7 +132,7 @@ export default function Sidebar() {
         </span>
       </button>
 
-      {/*  LOGOUT */}
+      {/* LOGOUT */}
       <div className="absolute bottom-6 w-full px-3">
         <button
           onClick={handleLogout}
@@ -126,7 +145,6 @@ export default function Sidebar() {
           {open && <span>Logout</span>}
         </button>
       </div>
-
     </div>
   );
 }
