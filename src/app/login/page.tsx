@@ -15,7 +15,7 @@ export default function LoginPage() {
     const email = emailRef.current?.value;
     const password = passwordRef.current?.value;
 
-    // 🔥 MULTI USER (ADMIN + OPERATOR)
+    //  MULTI USER (ADMIN + OPERATOR)
     const users = [
       {
         email: "admin",
