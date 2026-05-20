@@ -1,7 +1,7 @@
 import postgres from "postgres";
 import bcrypt from "bcrypt";
 
-// 🔥 koneksi database dari .env
+//  koneksi database dari .env
 const sql = postgres(process.env.POSTGRES_URL!, {
   ssl: "require",
 });
