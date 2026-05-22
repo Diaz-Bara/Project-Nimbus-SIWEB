@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 type Shipment = {
   id: number;
   awb: string;
@@ -10,18 +12,15 @@ type Shipment = {
   status: string;
 };
 
+// 💡 onCreate dan onEdit sudah dihapus dari Props karena kita menggunakan <Link>
 type Props = {
   data: Shipment[];
-  onEdit: (item: Shipment) => void;
   onDelete: (id: number) => void;
-  onCreate: () => void;
 };
 
 export default function ShipmentTable({
   data,
-  onEdit,
   onDelete,
-  onCreate,
 }: Props) {
   return (
     <div className="bg-white p-4 rounded-xl shadow-sm">
@@ -30,12 +29,13 @@ export default function ShipmentTable({
       <div className="flex justify-between items-center mb-4">
         <p className="font-semibold">Active Freight</p>
 
-        <button
-          onClick={onCreate}
-          className="bg-blue-600 text-white px-3 py-1 rounded-lg text-sm"
+        {/* 🌟 UBAH: Button diganti menjadi Link yang mengarah ke halaman create */}
+        <Link
+          href="/shipments/create"
+          className="bg-blue-600 text-white px-3 py-1 rounded-lg text-sm inline-block"
         >
           + Create Shipment
-        </button>
+        </Link>
       </div>
 
       {/* TABLE */}
@@ -76,13 +76,14 @@ export default function ShipmentTable({
               </td>
 
               {/* ACTION */}
-              <td className="space-x-2">
-                <button
-                  onClick={() => onEdit(item)}
-                  className="bg-blue-500 text-white px-2 py-1 rounded hover:bg-blue-600"
+              <td className="space-x-2 py-2">
+                {/* 🌟 UBAH: Button Edit diganti menjadi Link dengan rute dinamis berdasarkan ID */}
+                <Link
+                  href={`/shipments/${item.id}/edit`}
+                  className="bg-blue-500 text-white px-2 py-1.5 rounded hover:bg-blue-600 inline-block"
                 >
                   Edit
-                </button>
+                </Link>
 
                 <button
                   onClick={() => onDelete(item.id)}

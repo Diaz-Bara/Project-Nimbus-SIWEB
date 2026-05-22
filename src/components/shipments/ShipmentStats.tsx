@@ -1,4 +1,6 @@
-export default function ShipmentStats() {
+export default async function ShipmentStats() {
+  // Tambahkan simulasi delay 1.5 detik
+  await new Promise((resolve) => setTimeout(resolve, 1500));
   return (
     <div className="grid grid-cols-3 gap-4 mb-6">
 

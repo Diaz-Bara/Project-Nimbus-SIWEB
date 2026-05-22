@@ -1,4 +1,6 @@
-export default function FleetStats() {
+export default async function FleetStats() {
+  // Tambahkan simulasi waktu memuat data selama 1.5 detik
+  await new Promise((resolve) => setTimeout(resolve, 1500));
   return (
     <div className="bg-blue-900 text-white p-6 rounded-xl shadow-sm">
 
