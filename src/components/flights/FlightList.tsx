@@ -10,7 +10,7 @@ export default async function FlightList({
   // Simulasi loading/delay selama 1.5 detik agar efek Suspense terlihat
   await new Promise((resolve) => setTimeout(resolve, 1500));
 
-  // Data penerbangan dari kodemu
+  // Menambahkan 'as const' di akhir array agar TypeScript mengunci tipe literal statusnya
   const flights = [
     {
       id: 1,
@@ -64,7 +64,7 @@ export default async function FlightList({
       status: "active",
       progress: 25,
     },
-  ];
+  ] as const; // <--- Kuncinya ada di sini!
 
   // Logika filter sederhana agar search bar-nya langsung berfungsi secara visual
   const filteredFlights = flights.filter((flight) =>
