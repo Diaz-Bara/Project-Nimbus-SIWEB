@@ -1,76 +1,32 @@
-"use client";
-
-import { useState } from "react";
 import Sidebar from "@/components/dashboard/Sidebar";
 import Topbar from "@/components/dashboard/Topbar";
 import ShipmentStats from "@/components/shipments/ShipmentStats";
-import ShipmentTable from "@/components/shipments/ShipmentTable";
-import ShipmentModal from "@/components/shipments/ShipmentModal";
+import SearchWrapper from "@/components/SearchWrapper";
+import Pagination from "@/components/pagination";
+import ShipmentList from "@/components/shipments/ShipmentList";
+import ShipmentTableSkeleton from "@/components/shipments/ShipmentSkeleton";
+import { Suspense } from "react";
 
-type Shipment = {
-  id: number;
-  awb: string;
-  origin: string;
-  destination: string;
-  weight: number;
-  pieces: number;
-  status: string;
-};
-
-export default function ShipmentsPage() {
-  const [data, setData] = useState<Shipment[]>([
-    {
-      id: 1,
-      awb: "PET-48201-QX",
-      origin: "Jakarta",
-      destination: "Singapore",
-      weight: 425,
-      pieces: 12,
-      status: "In Transit",
-    },
-    {
-      id: 2,
-      awb: "PET-11023-AL",
-      origin: "Surabaya",
-      destination: "Melbourne",
-      weight: 1120,
-      pieces: 48,
-      status: "Pending QC",
-    },
-  ]);
-
-  const [open, setOpen] = useState(false);
-  const [editItem, setEditItem] = useState<Shipment | null>(null);
-
-  // CREATE / UPDATE
- const handleSave = (item: Shipment) => {
-  if (item.id) {
-    setData(data.map((d: Shipment) => (d.id === item.id ? item : d)));
-  } else {
-    setData([...data, { ...item, id: Date.now() }]);
-  }
-  setOpen(false);
-  setEditItem(null);
-};
-  // DELETE
-  const handleDelete = (id: number) => {
-    setData(data.filter((d: Shipment) => d.id !== id));
-  };
+export default async function ShipmentsPage(props: {
+  searchParams?: Promise<{
+    query?: string;
+    page?: string;
+  }>;
+}) {
+  const searchParams = await props.searchParams;
+  const query = searchParams?.query || "";
+  const currentPage = Number(searchParams?.page) || 1;
+  const totalPages = 5;
 
   return (
     <div className="h-screen flex bg-gray-100">
-
       <Sidebar />
-
       <div className="flex-1 flex flex-col">
-
         <div className="p-4">
           <Topbar />
         </div>
-
         <div className="px-6 pb-6 overflow-y-auto">
-
-          {/* TITLE */}
+          {/* TITLE SESUAI KODEMU */}
           <h1 className="text-xl font-bold text-blue-900 mb-1">
             Shipment Central
           </h1>
@@ -78,34 +34,40 @@ export default function ShipmentsPage() {
             Real-time logistics monitoring and freight management.
           </p>
 
-          {/* STATS */}
-          <ShipmentStats />
+{/* STATS DENGAN SUSPENSE */}
+          <Suspense 
+            fallback={
+              <div className="grid md:grid-cols-3 gap-4 mb-6">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="bg-white p-5 rounded-xl shadow-sm h-[96px] animate-pulse flex flex-col justify-center">
+                    <div className="h-3 w-1/2 bg-gray-200 rounded mb-3"></div>
+                    <div className="h-7 w-1/4 bg-gray-200 rounded"></div>
+                  </div>
+                ))}
+              </div>
+            }
+          >
+            <ShipmentStats />
+          </Suspense>
 
-          {/* TABLE */}
-          <ShipmentTable
-            data={data}
-            onEdit={(item: Shipment) => {
-            setEditItem(item);
-            setOpen(true);
-        }}
-            onDelete={handleDelete}
-            onCreate={() => setOpen(true)}
-          />
+          {/* SEARCH AREA */}
+          <div className="mt-6 mb-4">
+            <Suspense fallback={<div className="h-[42px] w-full bg-gray-200 rounded-lg animate-pulse"></div>}>
+              <SearchWrapper placeholder="Cari berdasarkan AWB, Asal, atau Tujuan..." />
+            </Suspense>
+          </div>
 
+          {/* LIST DENGAN SKELETON LOADING (GABUNGAN DATA & CRUD) */}
+          <Suspense key={query + currentPage} fallback={<ShipmentTableSkeleton />}>
+            <ShipmentList query={query} currentPage={currentPage} />
+          </Suspense>
+
+          {/* PAGINATION (BARU) */}
+          <div className="mt-5 flex w-full justify-center">
+            <Pagination totalPages={totalPages} />
+          </div>
         </div>
       </div>
-
-      {/* MODAL */}
-      {open && (
-        <ShipmentModal
-          data={editItem}
-          onClose={() => {
-            setOpen(false);
-            setEditItem(null);
-          }}
-          onSave={handleSave}
-        />
-      )}
     </div>
   );
 }

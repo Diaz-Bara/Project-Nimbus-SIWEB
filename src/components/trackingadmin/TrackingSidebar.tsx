@@ -1,4 +1,5 @@
-export default function TrackingSidebar() {
+export default async function TrackingSidebar() {
+  await new Promise((resolve) => setTimeout(resolve, 1500));
   return (
     <div className="space-y-4">
 

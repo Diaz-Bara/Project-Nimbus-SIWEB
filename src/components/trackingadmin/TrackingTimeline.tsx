@@ -1,4 +1,5 @@
-export default function TrackingTimeline() {
+export default async function TrackingTimeline() {
+  await new Promise((resolve) => setTimeout(resolve, 1500));
   const steps = [
     {
       title: "Received",

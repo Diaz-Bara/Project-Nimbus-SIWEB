@@ -1,4 +1,5 @@
-export default function CargoTable() {
+export default async function CargoTable() {
+  await new Promise((resolve) => setTimeout(resolve, 2000));
   return (
     <div className="bg-white p-4 rounded-xl shadow">
 
