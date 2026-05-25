@@ -1,12 +1,11 @@
+// src/app/users/page.tsx
 import Sidebar from "@/components/dashboard/Sidebar";
 import Topbar from "@/components/dashboard/Topbar";
-import SearchWrapper from "@/components/SearchWrapper";
-import Pagination from "@/components/pagination";
 import UserList from "@/components/users/UserList";
 import UserTableSkeleton from "@/components/users/UserSkeleton";
-import UserMetrics from "@/components/users/UserMetrics"; // <-- Import komponen baru
-import { Suspense } from "react";
+import UserMetrics from "@/components/users/UserMetrics";
 import UserBottomCards from "@/components/users/UserBottomCards";
+import { Suspense } from "react";
 
 export default async function UsersPage(props: {
   searchParams?: Promise<{
@@ -17,7 +16,7 @@ export default async function UsersPage(props: {
   const searchParams = await props.searchParams;
   const query = searchParams?.query || "";
   const currentPage = Number(searchParams?.page) || 1;
-  const totalPages = 5;
+  // totalPages tidak diperlukan lagi di sini karena sudah dipindah ke dalam UserList
 
   return (
     <div className="h-screen flex bg-gray-100">
@@ -55,41 +54,15 @@ export default async function UsersPage(props: {
             <UserMetrics />
           </Suspense>
 
-          {/* TABLE CARD */}
-          <div className="bg-white rounded-xl shadow-sm p-4">
-            
-            {/* TOP BAR WITH DYNAMIC SEARCH */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-4 gap-4">
-              <p className="font-semibold">System Operators & Administrators</p>
-              
-              <div className="flex w-full md:w-auto gap-3 items-center">
-                <div className="w-full md:w-64">
-                  {/* SKELETON UNTUK SEARCH BAR */}
-                  <Suspense fallback={<div className="h-[42px] w-full bg-gray-200 rounded-md animate-pulse"></div>}>
-                    <SearchWrapper placeholder="Search by name or ID..." />
-                  </Suspense>
-                </div>
-                <button className="bg-blue-700 text-white px-4 py-[9px] rounded-md text-sm flex-shrink-0 hover:bg-blue-800 transition">
-                  + New User
-                </button>
-              </div>
-            </div>
-
-            {/* TABLE LIST WITH SKELETON SUSPENSE */}
+          {/* 🌟 LANGSUNG PANGGIL USER LIST DI SINI */}
+          {/* Card putih, tombol New User, dan Pagination semuanya sudah di-handle di dalam UserList */}
+          <div className="mb-6">
             <Suspense key={query + currentPage} fallback={<UserTableSkeleton />}>
               <UserList query={query} currentPage={currentPage} />
             </Suspense>
-
-            {/* FOOTER WITH DYNAMIC PAGINATION */}
-            <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-100 text-xs text-gray-400">
-              <p>Showing users</p>
-              <div className="scale-90">
-                <Pagination totalPages={totalPages} />
-              </div>
-            </div>
           </div>
 
-{/* BOTTOM SECTION DENGAN SUSPENSE */}
+          {/* BOTTOM SECTION DENGAN SUSPENSE */}
           <Suspense
             fallback={
               <div className="grid md:grid-cols-2 gap-4 mt-6">
@@ -107,9 +80,9 @@ export default async function UsersPage(props: {
           >
             <UserBottomCards />
           </Suspense>
+
         </div>
       </div>
     </div>
   );
 }
-

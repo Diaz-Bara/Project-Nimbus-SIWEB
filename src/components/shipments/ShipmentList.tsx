@@ -13,9 +13,11 @@ type Shipment = {
 export default async function ShipmentList({
   query,
   currentPage,
+  isManagePage = false, // Menambahkan prop isManagePage dengan nilai default false
 }: {
   query: string;
   currentPage: number;
+  isManagePage?: boolean;
 }) {
   // Simulasi loading 1.5 detik agar Skeleton terlihat
   await new Promise((resolve) => setTimeout(resolve, 1500));
@@ -31,5 +33,5 @@ export default async function ShipmentList({
     item.destination.toLowerCase().includes(query.toLowerCase())
   );
 
-  return <ShipmentInteractive initialData={filteredData} />;
+  return <ShipmentInteractive initialData={filteredData} isManagePage={isManagePage} />;
 }
