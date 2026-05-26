@@ -12,7 +12,6 @@ export default function Sidebar() {
   const pathname = usePathname();
   const router = useRouter();
 
-  // 🔥 ambil user dari localStorage (biar aman dari SSR)
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user") || "null");
     setUser(storedUser);
@@ -23,20 +22,17 @@ export default function Sidebar() {
     router.push("/");
   };
 
-  // 🔥 BASE MENU (semua role)
   const baseMenu = [
     { name: "Dashboard", icon: "📊", path: "/dashboard" },
     { name: "Tracking Logs", icon: "📄", path: "/TrackingAdmin" },
     { name: "Flights", icon: "✈️", path: "/flights" },
   ];
 
-  // 🔥 ADMIN ONLY MENU
   const adminMenu = [
     { name: "Shipments", icon: "📦", path: "/shipments" },
     { name: "Users", icon: "👤", path: "/users" },
   ];
 
-  // 🔥 FINAL MENU (role-based)
   const menu =
     user?.role === "admin"
       ? [...baseMenu, ...adminMenu]
@@ -48,8 +44,6 @@ export default function Sidebar() {
       ${open ? "w-64" : "w-20"}
       bg-white/70 backdrop-blur-xl border-r border-white/20 shadow-lg`}
     >
-
-      {/* LOGO */}
       <div className="flex items-center gap-3 px-4 pt-5 mb-8">
         <div className="bg-white/80 backdrop-blur-md p-2 rounded-xl shadow">
           <Image src="/logo.png" alt="logo" width={26} height={26} />
@@ -70,10 +64,10 @@ export default function Sidebar() {
         )}
       </div>
 
-      {/* MENU */}
       <ul className="space-y-2 px-2">
         {menu.map((item) => {
-          const active = pathname === item.path;
+          // 🌟 PERUBAHAN: Menu akan menyala jika url sama, ATAU url dimulai dengan path tersebut (cth: /shipments/create)
+          const active = pathname === item.path || (item.path !== "/" && pathname.startsWith(item.path));
 
           return (
             <Link key={item.path} href={item.path}>
@@ -90,22 +84,18 @@ export default function Sidebar() {
                   }
                 `}
               >
-                {/* ICON */}
                 <span className="text-lg">{item.icon}</span>
 
-                {/* TEXT */}
                 {open && (
                   <span className="ml-3 font-medium">{item.name}</span>
                 )}
 
-                {/* ACTIVE INDICATOR */}
                 {active && (
                   <div className="absolute left-0 top-2 bottom-2 w-1 bg-blue-600 rounded-full"></div>
                 )}
 
-                {/* TOOLTIP */}
                 {!open && (
-                  <span className="absolute left-16 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap">
+                  <span className="absolute left-16 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-50">
                     {item.name}
                   </span>
                 )}
@@ -115,13 +105,12 @@ export default function Sidebar() {
         })}
       </ul>
 
-      {/* TOGGLE BUTTON */}
       <button
         onClick={() => setOpen(!open)}
         className="absolute top-1/2 -right-3 -translate-y-1/2 
         bg-white/80 backdrop-blur-md border shadow-md 
         rounded-full w-9 h-9 flex items-center justify-center 
-        hover:scale-110 transition"
+        hover:scale-110 transition z-50"
       >
         <span
           className={`transform transition-transform duration-300 ${
@@ -132,7 +121,6 @@ export default function Sidebar() {
         </span>
       </button>
 
-      {/* LOGOUT */}
       <div className="absolute bottom-6 w-full px-3">
         <button
           onClick={handleLogout}
