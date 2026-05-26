@@ -1,6 +1,8 @@
 "use client";
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { saveShipment } from "@/lib/actions";
 
 type Shipment = {
   id: number;
@@ -18,6 +20,7 @@ type ShipmentFormProps = {
 };
 
 export default function ShipmentForm({ data, onSave }: ShipmentFormProps) {
+  const router = useRouter();
   const [form, setForm] = useState({
     awb: data?.awb || "",
     origin: data?.origin || "",
@@ -29,10 +32,10 @@ export default function ShipmentForm({ data, onSave }: ShipmentFormProps) {
 
   const [isSaving, setIsSaving] = useState(false);
   
-  // 🌟 State untuk efek loading form (Skeleton)
+  // State untuk efek loading form (Skeleton)
   const [isFormLoading, setIsFormLoading] = useState(true);
 
-  // 🌟 Menahan tampilan form asli selama 1.5 detik saat halaman dimuat
+  // Menahan tampilan form asli selama 1.5 detik saat halaman dimuat
   useEffect(() => {
     const timer = setTimeout(() => {
       setIsFormLoading(false);
@@ -43,16 +46,21 @@ export default function ShipmentForm({ data, onSave }: ShipmentFormProps) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
-    await new Promise((resolve) => setTimeout(resolve, 1500));
 
-    if (onSave) {
-      onSave({
-        id: data?.id ?? Date.now(),
-        ...form,
-        weight: Number(form.weight),
-        pieces: Number(form.pieces),
-      });
+    const isUpdate = !!data?.id;
+    const shipmentId = data?.id;
+
+    // Simpan data langsung ke Database menggunakan Server Action
+    const result = await saveShipment(form, isUpdate, shipmentId);
+
+    if (result.success) {
+      // Kembali ke halaman utama setelah sukses
+      router.push("/shipments");
+      router.refresh(); // Memastikan data terbaru diambil dari database
+    } else {
+      alert("Gagal menyimpan data ke database. Cek terminal.");
     }
+    
     setIsSaving(false);
   };
 
@@ -69,7 +77,7 @@ export default function ShipmentForm({ data, onSave }: ShipmentFormProps) {
       </h2>
 
       {isFormLoading ? (
-        /* 🌟 SKELETON LOADING UI */
+        /* SKELETON LOADING UI */
         <div className="animate-pulse">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
             {[1, 2, 3, 4, 5, 6].map((i) => (
