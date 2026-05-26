@@ -1,37 +1,17 @@
 import ShipmentInteractive from "@/components/shipments/ShipmentInteractive";
-
-type Shipment = {
-  id: number;
-  awb: string;
-  origin: string;
-  destination: string;
-  weight: number;
-  pieces: number;
-  status: string;
-};
+import { fetchShipments } from "@/lib/actions";
 
 export default async function ShipmentList({
   query,
   currentPage,
-  isManagePage = false, // Menambahkan prop isManagePage dengan nilai default false
+  isManagePage = false,
 }: {
   query: string;
   currentPage: number;
   isManagePage?: boolean;
 }) {
-  // Simulasi loading 1.5 detik agar Skeleton terlihat
-  await new Promise((resolve) => setTimeout(resolve, 1500));
+  // Mengambil data langsung dari PostgreSQL (Neon)
+  const shipments = await fetchShipments(query);
 
-  const rawData: Shipment[] = [
-    { id: 1, awb: "PET-48201-QX", origin: "Jakarta", destination: "Singapore", weight: 425, pieces: 12, status: "In Transit" },
-    { id: 2, awb: "PET-11023-AL", origin: "Surabaya", destination: "Melbourne", weight: 1120, pieces: 48, status: "Pending QC" },
-  ];
-
-  const filteredData = rawData.filter((item) =>
-    item.awb.toLowerCase().includes(query.toLowerCase()) ||
-    item.origin.toLowerCase().includes(query.toLowerCase()) ||
-    item.destination.toLowerCase().includes(query.toLowerCase())
-  );
-
-  return <ShipmentInteractive initialData={filteredData} isManagePage={isManagePage} />;
+  return <ShipmentInteractive initialData={shipments} isManagePage={isManagePage} />;
 }

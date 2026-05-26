@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { PencilIcon, TrashIcon, InformationCircleIcon } from "@heroicons/react/24/outline";
+import { deleteShipmentAction } from "@/lib/actions";
 
 type Shipment = {
   id: number;
@@ -35,9 +36,13 @@ export default function ShipmentInteractive({
     setIsDeleteModalOpen(true);
   };
 
-  const confirmDelete = () => {
+  const confirmDelete = async () => {
     if (shipmentToDelete !== null) {
+      // 1. Hapus dari layar secara instan (Optimistic UI)
       setData(data.filter((d: Shipment) => d.id !== shipmentToDelete));
+      
+      // 2. Hapus permanen dari database
+      await deleteShipmentAction(shipmentToDelete);
     }
     setIsDeleteModalOpen(false);
     setShipmentToDelete(null);
