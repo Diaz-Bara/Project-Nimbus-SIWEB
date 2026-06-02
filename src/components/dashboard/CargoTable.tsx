@@ -1,11 +1,11 @@
+import { fetchRecentShipments } from "@/lib/actions";
+
 export default async function CargoTable() {
-  await new Promise((resolve) => setTimeout(resolve, 2000));
+  const shipments = await fetchRecentShipments(5);
+
   return (
     <div className="bg-white p-4 rounded-xl shadow">
-
-      <h3 className="font-semibold mb-4">
-        Today's Incoming Cargo
-      </h3>
+      <h3 className="font-semibold mb-4">Today's Incoming Cargo</h3>
 
       <table className="w-full text-sm">
         <thead className="text-gray-500">
@@ -14,37 +14,34 @@ export default async function CargoTable() {
             <th>Origin</th>
             <th>Destination</th>
             <th>Status</th>
-            <th>Time</th>
+            <th>Created</th>
           </tr>
         </thead>
 
         <tbody>
-          <tr className="border-t">
-            <td>AWB-92841</td>
-            <td>Singapore</td>
-            <td>Jakarta</td>
-            <td className="text-blue-500">In Transit</td>
-            <td>14:45</td>
-          </tr>
-
-          <tr className="border-t">
-            <td>AWB-11932</td>
-            <td>Narita</td>
-            <td>Surabaya</td>
-            <td className="text-orange-500">Pending</td>
-            <td>15:12</td>
-          </tr>
-
-          <tr className="border-t">
-            <td>AWB-88320</td>
-            <td>Hong Kong</td>
-            <td>Jakarta</td>
-            <td className="text-gray-500">Processing</td>
-            <td>15:30</td>
-          </tr>
+          {shipments.length === 0 ? (
+            <tr className="border-t">
+              <td colSpan={5} className="py-4 text-center text-gray-400">
+                No shipment data yet.
+              </td>
+            </tr>
+          ) : (
+            shipments.map((shipment) => (
+              <tr key={shipment.id} className="border-t text-center">
+                <td className="py-2 text-left">{shipment.awb}</td>
+                <td>{shipment.origin}</td>
+                <td>{shipment.destination}</td>
+                <td className="text-blue-500">{shipment.status}</td>
+                <td>
+                  {shipment.created_at
+                    ? new Date(shipment.created_at).toLocaleDateString("id-ID")
+                    : "-"}
+                </td>
+              </tr>
+            ))
+          )}
         </tbody>
       </table>
-
     </div>
   );
 }

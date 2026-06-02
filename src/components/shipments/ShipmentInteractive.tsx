@@ -8,10 +8,14 @@ import { deleteShipmentAction } from "@/lib/actions";
 type Shipment = {
   id: number;
   awb: string;
+  sender_name?: string;
+  recipient_name?: string;
   origin: string;
   destination: string;
+  item_type?: string;
   weight: number;
   pieces: number;
+  price?: number;
   status: string;
 };
 
@@ -38,11 +42,14 @@ export default function ShipmentInteractive({
 
   const confirmDelete = async () => {
     if (shipmentToDelete !== null) {
-      // 1. Hapus dari layar secara instan (Optimistic UI)
+      const previousData = data;
       setData(data.filter((d: Shipment) => d.id !== shipmentToDelete));
-      
-      // 2. Hapus permanen dari database
-      await deleteShipmentAction(shipmentToDelete);
+
+      const result = await deleteShipmentAction(shipmentToDelete);
+      if (!result.success) {
+        setData(previousData);
+        alert(result.error || "Gagal menghapus shipment.");
+      }
     }
     setIsDeleteModalOpen(false);
     setShipmentToDelete(null);
@@ -68,8 +75,11 @@ export default function ShipmentInteractive({
           <thead className="text-gray-400 text-xs">
             <tr className="text-center border-b">
               <th className="pb-3">AWB</th>
+              <th className="pb-3">Sender</th>
+              <th className="pb-3">Recipient</th>
               <th className="pb-3">Origin</th>
               <th className="pb-3">Destination</th>
+              <th className="pb-3">Item</th>
               <th className="pb-3">Weight</th>
               <th className="pb-3">Pieces</th>
               <th className="pb-3">Status</th>
@@ -80,8 +90,11 @@ export default function ShipmentInteractive({
             {data.map((item) => (
               <tr key={item.id} className="border-b last:border-b-0 text-center">
                 <td className="py-3">{item.awb}</td>
+                <td className="py-3">{item.sender_name || "-"}</td>
+                <td className="py-3">{item.recipient_name || "-"}</td>
                 <td className="py-3">{item.origin}</td>
                 <td className="py-3">{item.destination}</td>
+                <td className="py-3">{item.item_type || "-"}</td>
                 <td className="py-3">{item.weight}</td>
                 <td className="py-3">{item.pieces}</td>
                 <td

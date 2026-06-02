@@ -25,6 +25,8 @@ export default function Sidebar() {
 
   const handleLogout = () => {
     localStorage.removeItem("user");
+    document.cookie = "app_user=; path=/; max-age=0; SameSite=Lax";
+    document.cookie = "app_role=; path=/; max-age=0; SameSite=Lax";
     setUser(null);
     router.replace("/");
     router.refresh();

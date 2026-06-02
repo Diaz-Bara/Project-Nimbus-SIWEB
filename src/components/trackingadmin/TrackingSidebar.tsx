@@ -1,35 +1,33 @@
+import { fetchTrackingOverview } from "@/lib/actions";
+
 export default async function TrackingSidebar() {
-  await new Promise((resolve) => setTimeout(resolve, 1500));
+  const overview = await fetchTrackingOverview();
+  const shipment = overview.shipment;
+
   return (
     <div className="space-y-4">
-
-      {/* DETAIL */}
       <div className="bg-white p-4 rounded-xl shadow-sm">
-        <p className="text-xs text-gray-400 mb-2">
-          SHIPMENT DETAILS
-        </p>
+        <p className="text-xs text-gray-400 mb-2">SHIPMENT DETAILS</p>
 
-        <p className="text-sm">
-          Service: <span className="font-semibold text-blue-600">⚡ Petir Lightning Express</span>
-        </p>
-
-        <p className="text-sm mt-2">
-          Weight: 142.5 KG
-        </p>
-
-        <p className="text-sm">
-          Pieces: 3 Units
-        </p>
+        {!shipment ? (
+          <p className="text-sm text-gray-500">No shipment selected.</p>
+        ) : (
+          <>
+            <p className="text-sm">
+              AWB: <span className="font-semibold text-blue-600">{shipment.awb}</span>
+            </p>
+            <p className="text-sm mt-2">Origin: {shipment.origin}</p>
+            <p className="text-sm">Destination: {shipment.destination}</p>
+            <p className="text-sm">Status: {shipment.status}</p>
+          </>
+        )}
       </div>
 
-      {/* MAP */}
       <div className="bg-white p-4 rounded-xl shadow-sm">
-        <p className="text-xs text-gray-400 mb-2">
-          CURRENT LOCATION MAP
-        </p>
+        <p className="text-xs text-gray-400 mb-2">CURRENT LOCATION MAP</p>
 
         <div className="h-32 bg-gray-200 rounded-lg flex items-center justify-center text-gray-400 text-sm">
-          Map Preview
+          {shipment ? shipment.destination : "Map Preview"}
         </div>
       </div>
     </div>

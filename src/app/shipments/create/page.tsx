@@ -6,6 +6,7 @@ import SearchWrapper from "@/components/SearchWrapper";
 import Pagination from "@/components/pagination";
 import ShipmentTableSkeleton from "@/components/shipments/ShipmentSkeleton";
 import { Suspense } from "react";
+import { fetchShipmentsPages } from "@/lib/actions";
 
 export default async function CreateShipmentPage(props: {
   searchParams?: Promise<{ query?: string; page?: string }>;
@@ -13,7 +14,7 @@ export default async function CreateShipmentPage(props: {
   const searchParams = await props.searchParams;
   const query = searchParams?.query || "";
   const currentPage = Number(searchParams?.page) || 1;
-  const totalPages = 5; // Asumsi total halaman, bisa disesuaikan dengan data riil nantinya
+  const totalPages = await fetchShipmentsPages(query);
 
   return (
     <div className="h-screen flex bg-gray-100">

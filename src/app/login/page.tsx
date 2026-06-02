@@ -36,6 +36,8 @@ export default function LoginPage() {
     if (foundUser) {
       // simpan user ke localStorage
       localStorage.setItem("user", JSON.stringify(foundUser));
+      document.cookie = `app_user=${foundUser.email}; path=/; max-age=86400; SameSite=Lax`;
+      document.cookie = `app_role=${foundUser.role}; path=/; max-age=86400; SameSite=Lax`;
 
       // redirect (semua ke dashboard dulu)
       router.push("/dashboard");

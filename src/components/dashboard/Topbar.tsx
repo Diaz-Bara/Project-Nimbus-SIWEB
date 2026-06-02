@@ -1,18 +1,16 @@
-import { auth } from "@/auth"; // Mengambil sesi login dari NextAuth
+import { cookies } from "next/headers";
 
 export default async function Topbar() {
-  // Mendapatkan data user yang sedang login secara server-side
-  const session = await auth();
-  const user = session?.user;
+  const cookieStore = await cookies();
+  const user = cookieStore.get("app_user")?.value || "Guest";
+  const role = cookieStore.get("app_role")?.value || "guest";
 
   return (
     <div className="w-full flex justify-end items-center">
-      {/* RIGHT SIDE */}
       <div className="flex items-center gap-4">
-        {/* USER INFO (Tampilan dipertahankan sesuai kodemu) */}
         <div className="text-right text-sm">
-          {/* Akan menampilkan email/username orang yang login */}
-          <p className="font-semibold">{user?.email || "Guest"} 👤</p>
+          <p className="font-semibold">{user}</p>
+          <p className="text-xs uppercase text-gray-400">{role}</p>
         </div>
       </div>
     </div>

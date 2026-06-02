@@ -6,6 +6,7 @@ import Pagination from "@/components/pagination";
 import ShipmentList from "@/components/shipments/ShipmentList";
 import ShipmentTableSkeleton from "@/components/shipments/ShipmentSkeleton";
 import { Suspense } from "react";
+import { fetchShipmentsPages } from "@/lib/actions";
 
 export default async function ShipmentsPage(props: {
   searchParams?: Promise<{
@@ -16,7 +17,7 @@ export default async function ShipmentsPage(props: {
   const searchParams = await props.searchParams;
   const query = searchParams?.query || "";
   const currentPage = Number(searchParams?.page) || 1;
-  const totalPages = 5;
+  const totalPages = await fetchShipmentsPages(query);
 
   return (
     <div className="h-screen flex bg-gray-100">

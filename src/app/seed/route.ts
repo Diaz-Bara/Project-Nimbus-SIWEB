@@ -9,7 +9,7 @@ export async function GET() {
   try {
     const result = await sql.begin(async (sql) => {
       // DROP TABLE LAMA
-      await sql`DROP TABLE IF EXISTS shipment_items, shipment_details, shipments, items, flights, customers, users CASCADE`;
+      await sql`DROP TABLE IF EXISTS tracking_logs, shipment_items, shipment_details, shipments, items, flights, customers, users CASCADE`;
 
       // ================= 1. MASTER: USERS =================
       await sql`
@@ -92,17 +92,25 @@ export async function GET() {
           awb TEXT UNIQUE,
           customer_id INT REFERENCES customers(id) ON DELETE CASCADE,
           flight_id INT REFERENCES flights(id) ON DELETE CASCADE,
+          sender_name TEXT,
           weight INT,
+          pieces INT,
           price INT,
           status TEXT,
           shipping_date DATE,
           service_level TEXT,
-          description TEXT
+          description TEXT,
+          item_type TEXT,
+          vehicle_type TEXT,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
         );
       `;
       const awbs = ["AWB-001", "AWB-002", "AWB-003", "AWB-004", "AWB-005", "AWB-006", "AWB-007", "AWB-008", "AWB-009", "AWB-010"];
       const weights = [120, 450, 80, 1500, 310, 620, 95, 1100, 240, 500];
       const prices = [1500000, 4200000, 900000, 12500000, 3200000, 5800000, 1100000, 9800000, 2100000, 4500000];
+      const senders = ["Raka Pratama", "Maya Santoso", "Nadia Putri", "Fajar Akbar", "Dimas Surya", "Lina Kartika", "Seno Wibowo", "Clara Wijaya", "Yusuf Hadi", "Rani Amelia"];
+      const itemTypes = ["Dokumen", "Elektronik", "Pakaian", "Suku Cadang Mesin", "Kosmetik", "Makanan Kering", "Obat-obatan", "Mainan Anak", "Perabotan", "Bahan Kimia Aman"];
 
       for (let i = 0; i < 10; i++) {
         const custId = i < 3 ? 1 : i + 1; 
@@ -114,8 +122,36 @@ export async function GET() {
         const desc = `Barang kargo batch ${i + 1} dalam kondisi baik.`;
 
         await sql`
-          INSERT INTO shipments (awb, customer_id, flight_id, weight, price, status, shipping_date, service_level, description) 
-          VALUES (${awbs[i]}, ${custId}, ${flightId}, ${weights[i]}, ${prices[i]}, 'In Transit', ${tglKirim}, ${serviceLvl}, ${desc})
+          INSERT INTO shipments (
+            awb,
+            customer_id,
+            flight_id,
+            sender_name,
+            weight,
+            pieces,
+            price,
+            status,
+            shipping_date,
+            service_level,
+            description,
+            item_type,
+            vehicle_type
+          ) 
+          VALUES (
+            ${awbs[i]},
+            ${custId},
+            ${flightId},
+            ${senders[i]},
+            ${weights[i]},
+            ${i + 1},
+            ${prices[i]},
+            'In Transit',
+            ${tglKirim},
+            ${serviceLvl},
+            ${desc},
+            ${itemTypes[i]},
+            'Air Cargo'
+          )
         `;
       }
 
@@ -154,6 +190,32 @@ export async function GET() {
       ];
       for (const data of junctionData) {
         await sql`INSERT INTO shipment_items (shipment_id, item_id, quantity) VALUES (${data[0]}, ${data[1]}, 10)`;
+      }
+
+      await sql`
+        CREATE TABLE tracking_logs (
+          id SERIAL PRIMARY KEY,
+          shipment_id INT REFERENCES shipments(id) ON DELETE CASCADE,
+          status TEXT NOT NULL,
+          location TEXT,
+          note TEXT,
+          created_at TIMESTAMP DEFAULT NOW()
+        );
+      `;
+
+      for (let i = 1; i <= 10; i++) {
+        await sql`
+          INSERT INTO tracking_logs (shipment_id, status, location, note, created_at)
+          VALUES (${i}, 'Received', 'Jakarta', 'Cargo received at origin hub', NOW() - INTERVAL '3 hours')
+        `;
+        await sql`
+          INSERT INTO tracking_logs (shipment_id, status, location, note, created_at)
+          VALUES (${i}, 'Sortation', 'CGK Hub', 'Cargo processed through sorting facility', NOW() - INTERVAL '2 hours')
+        `;
+        await sql`
+          INSERT INTO tracking_logs (shipment_id, status, location, note, created_at)
+          VALUES (${i}, 'In Transit', 'Air Network', 'Cargo is currently in transit', NOW() - INTERVAL '1 hour')
+        `;
       }
 
     });

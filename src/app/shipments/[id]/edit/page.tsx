@@ -6,6 +6,8 @@ import SearchWrapper from "@/components/SearchWrapper";
 import Pagination from "@/components/pagination";
 import ShipmentTableSkeleton from "@/components/shipments/ShipmentSkeleton";
 import { Suspense } from "react";
+import { notFound } from "next/navigation";
+import { fetchShipmentById, fetchShipmentsPages } from "@/lib/actions";
 
 export default async function EditShipmentPage(props: { 
   params: Promise<{ id: string }>;
@@ -17,17 +19,12 @@ export default async function EditShipmentPage(props: {
   const id = params.id;
   const query = searchParams?.query || "";
   const currentPage = Number(searchParams?.page) || 1;
-  const totalPages = 5;
+  const totalPages = await fetchShipmentsPages(query);
+  const shipment = await fetchShipmentById(Number(id));
 
-  const dummyData = {
-    id: Number(id),
-    awb: "PET-49201-9X",
-    origin: "Jakarta (CGK)",
-    destination: "Singapore (SIN)",
-    weight: 425.00,
-    pieces: 12,
-    status: "In Transit"
-  };
+  if (!shipment) {
+    notFound();
+  }
 
   return (
     <div className="h-screen flex bg-gray-100">
@@ -45,7 +42,7 @@ export default async function EditShipmentPage(props: {
             </h1>
           </div>
           
-          <ShipmentForm data={dummyData} />
+          <ShipmentForm data={shipment as any} />
           
           <div className="mt-8">
             {/* SEARCH AREA */}

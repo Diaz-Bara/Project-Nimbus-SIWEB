@@ -1,8 +1,34 @@
-import NextAuth from 'next-auth';
-import { authConfig } from './auth.config';
+import { NextRequest, NextResponse } from "next/server";
 
-export default NextAuth(authConfig).auth;
+const protectedRoutes = [
+  "/dashboard",
+  "/TrackingAdmin",
+  "/tracking",
+  "/flights",
+  "/shipments",
+  "/users",
+];
+
+const adminOnlyRoutes = ["/shipments", "/users"];
+
+export default function proxy(request: NextRequest) {
+  const { pathname } = request.nextUrl;
+  const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route));
+  const isAdminOnlyRoute = adminOnlyRoutes.some((route) => pathname.startsWith(route));
+  const user = request.cookies.get("app_user")?.value;
+  const role = request.cookies.get("app_role")?.value;
+
+  if (isProtectedRoute && !user) {
+    return NextResponse.redirect(new URL("/login", request.url));
+  }
+
+  if (isAdminOnlyRoute && role !== "admin") {
+    return NextResponse.redirect(new URL("/dashboard", request.url));
+  }
+
+  return NextResponse.next();
+}
 
 export const config = {
-  matcher: ['/((?!api|_next/static|_next/image|.*\\.png$).*)'],
+  matcher: ["/((?!api|_next/static|_next/image|.*\\.png$).*)"],
 };
