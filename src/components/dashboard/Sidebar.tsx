@@ -14,12 +14,20 @@ export default function Sidebar() {
 
   useEffect(() => {
     const storedUser = JSON.parse(localStorage.getItem("user") || "null");
+
+    if (!storedUser) {
+      router.replace("/login");
+      return;
+    }
+
     setUser(storedUser);
-  }, []);
+  }, [router]);
 
   const handleLogout = () => {
     localStorage.removeItem("user");
-    router.push("/");
+    setUser(null);
+    router.replace("/");
+    router.refresh();
   };
 
   const baseMenu = [

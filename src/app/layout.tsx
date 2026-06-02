@@ -1,30 +1,24 @@
-"use client";
 import "./globals.css";
-import Footer from "@/components/layout/Footer";
-import Navbar from "@/components/layout/Navbar";
-import { usePathname } from "next/navigation";
+import ClientLayoutWrapper from "@/components/layout/ClientLayoutWrapper";
+import { Metadata } from "next";
+
+// 🌟 MENAMBAHKAN METADATA SESUAI UGD & CHAPTER 15
+export const metadata: Metadata = {
+  title: {
+    template: "%s | Nimbus Cargo Express",
+    default: "Nimbus Cargo Express - Precision Logistics",
+  },
+  description: "Sistem Informasi Cargo Darat, Udara, dan Laut terpercaya.",
+};
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-
-  const hideRoutes = ["/dashboard", "/login", "/register", "/TrackingAdmin", "/tracking", "/shipments", "/flights", "/users"];
-
-  const hideLayout = hideRoutes.some((route) =>
-    pathname.includes(route)
-  );
-
   return (
     <html lang="en">
       <body className="min-h-screen flex flex-col">
-
-        {!hideLayout && <Navbar />}
-
-        <main className="flex-1">
+        {/* Memanggil wrapper client untuk menyembunyikan Navbar/Footer */}
+        <ClientLayoutWrapper>
           {children}
-        </main>
-
-        {!hideLayout && <Footer />}
-
+        </ClientLayoutWrapper>
       </body>
     </html>
   );

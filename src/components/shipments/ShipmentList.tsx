@@ -11,7 +11,7 @@ export default async function ShipmentList({
   isManagePage?: boolean;
 }) {
   // Mengambil data langsung dari PostgreSQL (Neon)
-  const shipments = await fetchShipments(query);
+  const shipments = await fetchShipments(query, currentPage);
 
   return <ShipmentInteractive initialData={shipments} isManagePage={isManagePage} />;
 }

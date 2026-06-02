@@ -33,7 +33,7 @@ export async function GET() {
         await sql`INSERT INTO users (name, email, password, role) VALUES (${u.name}, ${u.email}, ${hash}, ${u.role})`;
       }
 
-      // ================= 2. MASTER: CUSTOMERS (SUDAH DIPERBAIKI) =================
+      // ================= 2. MASTER: CUSTOMERS =================
       await sql`
         CREATE TABLE customers (
           id SERIAL PRIMARY KEY,
@@ -41,8 +41,6 @@ export async function GET() {
           company TEXT
         );
       `;
-      
-      // ✅ Data sudah dipisah antara nama perwakilan (name) dan nama perusahaan (company)
       const customersData = [
         { name: "Andi Wijaya", company: "PT Tech Corp" },
         { name: "Siti Rahma", company: "CV Logistik Jaya" },
@@ -60,7 +58,7 @@ export async function GET() {
         await sql`INSERT INTO customers (name, company) VALUES (${cust.name}, ${cust.company})`;
       }
 
-      // ================= 3. MASTER: FLIGHTS =================
+      // ================= 3. MASTER: FLIGHTS (KEMBALI KE STRUKTUR AWAL) =================
       await sql`
         CREATE TABLE flights (
           id SERIAL PRIMARY KEY,
@@ -86,7 +84,8 @@ export async function GET() {
         await sql`INSERT INTO items (name, category) VALUES (${item}, 'General Cargo')`;
       }
 
-      // ================= 5. TRANSAKSI: SHIPMENTS =================
+      // ================= 5. TRANSAKSI: SHIPMENTS (DITAMBAH 3 KRITERIA BARU) =================
+      // Menambahkan: shipping_date, service_level, description
       await sql`
         CREATE TABLE shipments (
           id SERIAL PRIMARY KEY,
@@ -95,7 +94,10 @@ export async function GET() {
           flight_id INT REFERENCES flights(id) ON DELETE CASCADE,
           weight INT,
           price INT,
-          status TEXT
+          status TEXT,
+          shipping_date DATE,
+          service_level TEXT,
+          description TEXT
         );
       `;
       const awbs = ["AWB-001", "AWB-002", "AWB-003", "AWB-004", "AWB-005", "AWB-006", "AWB-007", "AWB-008", "AWB-009", "AWB-010"];
@@ -105,25 +107,35 @@ export async function GET() {
       for (let i = 0; i < 10; i++) {
         const custId = i < 3 ? 1 : i + 1; 
         const flightId = i + 1;
+        
+        // Data dummy untuk 3 kolom baru
+        const tglKirim = `2026-05-${String(i + 1).padStart(2, '0')}`;
+        const serviceLvl = i % 2 === 0 ? 'Express Priority' : 'Standard Cargo';
+        const desc = `Barang kargo batch ${i + 1} dalam kondisi baik.`;
+
         await sql`
-          INSERT INTO shipments (awb, customer_id, flight_id, weight, price, status) 
-          VALUES (${awbs[i]}, ${custId}, ${flightId}, ${weights[i]}, ${prices[i]}, 'In Transit')
+          INSERT INTO shipments (awb, customer_id, flight_id, weight, price, status, shipping_date, service_level, description) 
+          VALUES (${awbs[i]}, ${custId}, ${flightId}, ${weights[i]}, ${prices[i]}, 'In Transit', ${tglKirim}, ${serviceLvl}, ${desc})
         `;
       }
 
-      // ================= 6. DETAIL TRANSAKSI: SHIPMENT_DETAILS =================
+      // ================= 6. DETAIL TRANSAKSI: SHIPMENT_DETAILS (DITAMBAH 1 KRITERIA BARU) =================
+      // Menambahkan: phone_number
       await sql`
         CREATE TABLE shipment_details (
           id SERIAL PRIMARY KEY,
           shipment_id INT UNIQUE REFERENCES shipments(id) ON DELETE CASCADE, 
           origin TEXT,
           destination TEXT,
-          recipient_name TEXT
+          recipient_name TEXT,
+          phone_number TEXT
         );
       `;
       for (let i = 1; i <= 10; i++) {
         const namaPenerima = `Penerima ${i}`;
-        await sql`INSERT INTO shipment_details (shipment_id, origin, destination, recipient_name) VALUES (${i}, 'Jakarta', 'Singapore', ${namaPenerima})`;
+        const noTelp = `0812345678${i.toString().padStart(2, '0')}`;
+        
+        await sql`INSERT INTO shipment_details (shipment_id, origin, destination, recipient_name, phone_number) VALUES (${i}, 'Jakarta', 'Singapore', ${namaPenerima}, ${noTelp})`;
       }
 
       // ================= 7. JUNCTION TABLE: SHIPMENT_ITEMS =================
@@ -146,7 +158,7 @@ export async function GET() {
 
     });
 
-    return Response.json({ message: "Database seeded successfully! Nama dan Company sudah diperbaiki 🚀" });
+    return Response.json({ message: "Database seeded successfully! 4 Kriteria Tambahan (Tanpa detail kendaraan) berhasil ditambahkan 🚀" });
   } catch (error) {
     console.error(error);
     return Response.json({ error: "Seeding failed ❌" }, { status: 500 });

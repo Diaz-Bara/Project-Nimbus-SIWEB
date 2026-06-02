@@ -1,33 +1,19 @@
-"use client";
+import { auth } from "@/auth"; // Mengambil sesi login dari NextAuth
 
-export default function Topbar() {
-  const user =
-    typeof window !== "undefined"
-      ? JSON.parse(localStorage.getItem("user") || "null")
-      : null;
+export default async function Topbar() {
+  // Mendapatkan data user yang sedang login secara server-side
+  const session = await auth();
+  const user = session?.user;
 
   return (
-    <div className="flex justify-between items-center">
-
-      {/* SEARCH */}
-      <input
-        placeholder="Search..."
-        className="w-1/2 border rounded-xl px-4 py-2 text-sm"
-      />
-
+    <div className="w-full flex justify-end items-center">
       {/* RIGHT SIDE */}
       <div className="flex items-center gap-4">
-
-        {/* ROLE */}
-        {/* <span className="text-sm font-medium text-gray-600">
-          {user?.role === "admin" ? "Admin" : "Operator"}
-        </span> */}
-
-        {/* USER INFO */}
+        {/* USER INFO (Tampilan dipertahankan sesuai kodemu) */}
         <div className="text-right text-sm">
-          <p className="font-semibold">{user?.email} 👤</p>
+          {/* Akan menampilkan email/username orang yang login */}
+          <p className="font-semibold">{user?.email || "Guest"} 👤</p>
         </div>
-
       </div>
     </div>
   );

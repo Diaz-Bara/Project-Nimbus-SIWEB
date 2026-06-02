@@ -12,8 +12,8 @@ export default function LoginPage() {
   const passwordRef = useRef<HTMLInputElement>(null);
 
   const handleLogin = () => {
-    const email = emailRef.current?.value;
-    const password = passwordRef.current?.value;
+    const email = emailRef.current?.value.trim().toLowerCase();
+    const password = passwordRef.current?.value.trim();
 
     //  MULTI USER (ADMIN + OPERATOR)
     const users = [
