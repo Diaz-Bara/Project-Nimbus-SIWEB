@@ -2,10 +2,17 @@ import Sidebar from "@/components/dashboard/Sidebar";
 import Topbar from "@/components/dashboard/Topbar";
 import TrackingTimeline from "@/components/trackingadmin/TrackingTimeline";
 import TrackingSidebar from "@/components/trackingadmin/TrackingSidebar";
-import TrackingHeader from "@/components/trackingadmin/TrackingHeader"; // <-- Import Header baru
+import TrackingHeader from "@/components/trackingadmin/TrackingHeader";
 import { Suspense } from "react";
 
-export default function TrackingPage() {
+export default async function TrackingPage(props: {
+  searchParams?: Promise<{
+    awb?: string;
+  }>;
+}) {
+  const searchParams = await props.searchParams;
+  const awb = searchParams?.awb?.trim() || "";
+
   return (
     <div className="h-screen flex bg-gray-100">
       <Sidebar />
@@ -38,53 +45,52 @@ export default function TrackingPage() {
               </div>
             }
           >
-            <TrackingHeader />
+            <TrackingHeader awb={awb} />
           </Suspense>
 
-          {/* MAIN CONTENT DENGAN SUSPENSE */}
-          <div className="grid md:grid-cols-3 gap-6">
-            {/* TIMELINE */}
-            <div className="md:col-span-2">
-              <Suspense
-                fallback={
-                  <div className="bg-white rounded-xl shadow-sm p-6 h-[400px] animate-pulse flex flex-col gap-8">
-                    {[1, 2, 3, 4].map((i) => (
-                      <div key={i} className="flex gap-4">
-                        <div className="w-4 h-4 bg-gray-200 rounded-full mt-1"></div>
-                        <div className="flex-1">
-                          <div className="h-4 w-1/3 bg-gray-200 rounded mb-2"></div>
-                          <div className="h-3 w-1/2 bg-gray-200 rounded"></div>
+          {awb && (
+            <div className="grid md:grid-cols-3 gap-6">
+              <div className="md:col-span-2">
+                <Suspense
+                  fallback={
+                    <div className="bg-white rounded-xl shadow-sm p-6 h-[400px] animate-pulse flex flex-col gap-8">
+                      {[1, 2, 3, 4].map((i) => (
+                        <div key={i} className="flex gap-4">
+                          <div className="w-4 h-4 bg-gray-200 rounded-full mt-1"></div>
+                          <div className="flex-1">
+                            <div className="h-4 w-1/3 bg-gray-200 rounded mb-2"></div>
+                            <div className="h-3 w-1/2 bg-gray-200 rounded"></div>
+                          </div>
                         </div>
-                      </div>
-                    ))}
-                  </div>
-                }
-              >
-                <TrackingTimeline />
-              </Suspense>
-            </div>
+                      ))}
+                    </div>
+                  }
+                >
+                  <TrackingTimeline awb={awb} />
+                </Suspense>
+              </div>
 
-            {/* DETAIL / SIDEBAR */}
-            <div className="space-y-6">
-              <Suspense
-                fallback={
-                  <>
-                    <div className="bg-white p-4 rounded-xl shadow-sm h-[130px] animate-pulse flex flex-col gap-3 justify-center">
-                      <div className="h-3 w-1/3 bg-gray-200 rounded mb-2"></div>
-                      <div className="h-4 w-2/3 bg-gray-200 rounded"></div>
-                      <div className="h-4 w-1/2 bg-gray-200 rounded"></div>
-                    </div>
-                    <div className="bg-white p-4 rounded-xl shadow-sm h-[200px] animate-pulse flex flex-col gap-3">
-                      <div className="h-3 w-1/3 bg-gray-200 rounded mb-2"></div>
-                      <div className="flex-1 bg-gray-100 rounded-lg"></div>
-                    </div>
-                  </>
-                }
-              >
-                <TrackingSidebar />
-              </Suspense>
+              <div className="space-y-6">
+                <Suspense
+                  fallback={
+                    <>
+                      <div className="bg-white p-4 rounded-xl shadow-sm h-[130px] animate-pulse flex flex-col gap-3 justify-center">
+                        <div className="h-3 w-1/3 bg-gray-200 rounded mb-2"></div>
+                        <div className="h-4 w-2/3 bg-gray-200 rounded"></div>
+                        <div className="h-4 w-1/2 bg-gray-200 rounded"></div>
+                      </div>
+                      <div className="bg-white p-4 rounded-xl shadow-sm h-[200px] animate-pulse flex flex-col gap-3">
+                        <div className="h-3 w-1/3 bg-gray-200 rounded mb-2"></div>
+                        <div className="flex-1 bg-gray-100 rounded-lg"></div>
+                      </div>
+                    </>
+                  }
+                >
+                  <TrackingSidebar awb={awb} />
+                </Suspense>
+              </div>
             </div>
-          </div>
+          )}
 
         </div>
       </div>

@@ -8,7 +8,7 @@ export default async function DashboardStats() {
     <div className="grid md:grid-cols-4 gap-4 mt-6">
       <StatsCard title="Active Cargo" value={stats.total.toString()} sub="Database synced" />
       <StatsCard title="In Transit" value={stats.inTransit.toString()} sub="Live shipment status" />
-      <StatsCard title="Flagged Cargo" value={stats.flagged.toString()} sub="Needs operator review" />
+      <StatsCard title="Canceled Cargo" value={stats.canceled.toString()} sub="Canceled shipment status" />
       <StatsCard title="On-Time Index" value="A-" sub="Reviewed from shipment data" />
     </div>
   );

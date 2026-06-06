@@ -3,7 +3,6 @@ import { NextRequest, NextResponse } from "next/server";
 const protectedRoutes = [
   "/dashboard",
   "/TrackingAdmin",
-  "/tracking",
   "/flights",
   "/shipments",
   "/users",

@@ -7,6 +7,7 @@ import FlightList from "@/components/flights/FlightList";
 import FlightsListSkeleton from "@/components/flights/FlightSkeleton";
 import { Suspense } from "react";
 import FlightMap from "@/components/flights/FlightMap";
+import { fetchFlightsPages } from "@/lib/actions";
 
 export default async function FlightsPage(props: {
   searchParams?: Promise<{
@@ -17,7 +18,7 @@ export default async function FlightsPage(props: {
   const searchParams = await props.searchParams;
   const query = searchParams?.query || "";
   const currentPage = Number(searchParams?.page) || 1;
-  const totalPages = 5; 
+  const totalPages = await fetchFlightsPages(query);
 
   return (
     <div className="h-screen flex bg-gray-100">
@@ -59,9 +60,11 @@ export default async function FlightsPage(props: {
           </div>
 
           {/* PAGINATION */}
-          <div className="mt-5 flex w-full justify-center">
-            <Pagination totalPages={totalPages} />
-          </div>
+          {totalPages > 1 && (
+            <div className="mt-5 flex w-full justify-center">
+              <Pagination totalPages={totalPages} />
+            </div>
+          )}
 
           {/* BOTTOM */}
           <div className="grid md:grid-cols-3 gap-6 mt-6">

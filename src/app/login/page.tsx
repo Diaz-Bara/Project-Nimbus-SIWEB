@@ -1,7 +1,6 @@
 "use client";
 
 import Image from "next/image";
-import Link from "next/link";
 import { useRef } from "react";
 import { useRouter } from "next/navigation";
 
@@ -101,13 +100,6 @@ export default function LoginPage() {
         >
           LOGIN
         </button>
-
-        {/* CREATE ACCOUNT */}
-        <Link href="/register">
-          <button className="w-full border py-2 rounded-lg text-sm">
-            Create Account
-          </button>
-        </Link>
 
       </div>
     </div>

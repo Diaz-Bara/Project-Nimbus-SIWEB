@@ -4,6 +4,15 @@ import Image from "next/image";
 import { useState, useEffect } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import Link from "next/link";
+import {
+  ArrowLeftStartOnRectangleIcon,
+  ChartBarIcon,
+  ChevronRightIcon,
+  CubeIcon,
+  DocumentTextIcon,
+  PaperAirplaneIcon,
+  UserIcon,
+} from "@heroicons/react/24/outline";
 
 export default function Sidebar() {
   const [open, setOpen] = useState(true);
@@ -33,14 +42,14 @@ export default function Sidebar() {
   };
 
   const baseMenu = [
-    { name: "Dashboard", icon: "📊", path: "/dashboard" },
-    { name: "Tracking Logs", icon: "📄", path: "/TrackingAdmin" },
-    { name: "Flights", icon: "✈️", path: "/flights" },
+    { name: "Dashboard", icon: ChartBarIcon, path: "/dashboard" },
+    { name: "Tracking Logs", icon: DocumentTextIcon, path: "/TrackingAdmin" },
+    { name: "Flights", icon: PaperAirplaneIcon, path: "/flights" },
   ];
 
   const adminMenu = [
-    { name: "Shipments", icon: "📦", path: "/shipments" },
-    { name: "Users", icon: "👤", path: "/users" },
+    { name: "Shipments", icon: CubeIcon, path: "/shipments" },
+    { name: "Users", icon: UserIcon, path: "/users" },
   ];
 
   const menu =
@@ -76,8 +85,8 @@ export default function Sidebar() {
 
       <ul className="space-y-2 px-2">
         {menu.map((item) => {
-          // 🌟 PERUBAHAN: Menu akan menyala jika url sama, ATAU url dimulai dengan path tersebut (cth: /shipments/create)
           const active = pathname === item.path || (item.path !== "/" && pathname.startsWith(item.path));
+          const Icon = item.icon;
 
           return (
             <Link key={item.path} href={item.path}>
@@ -86,7 +95,6 @@ export default function Sidebar() {
                   group relative flex items-center cursor-pointer
                   ${open ? "px-4 justify-start" : "justify-center"}
                   py-3 rounded-xl transition-all duration-300
-                  
                   ${
                     active
                       ? "bg-blue-500/20 text-blue-700 backdrop-blur-md shadow-inner"
@@ -94,7 +102,7 @@ export default function Sidebar() {
                   }
                 `}
               >
-                <span className="text-lg">{item.icon}</span>
+                <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
 
                 {open && (
                   <span className="ml-3 font-medium">{item.name}</span>
@@ -117,18 +125,18 @@ export default function Sidebar() {
 
       <button
         onClick={() => setOpen(!open)}
-        className="absolute top-1/2 -right-3 -translate-y-1/2 
-        bg-white/80 backdrop-blur-md border shadow-md 
-        rounded-full w-9 h-9 flex items-center justify-center 
+        className="absolute top-1/2 -right-3 -translate-y-1/2
+        bg-white/80 backdrop-blur-md border shadow-md
+        rounded-full w-9 h-9 flex items-center justify-center
         hover:scale-110 transition z-50"
+        aria-label="Toggle sidebar"
       >
-        <span
-          className={`transform transition-transform duration-300 ${
+        <ChevronRightIcon
+          className={`h-4 w-4 transform transition-transform duration-300 ${
             open ? "rotate-180" : ""
           }`}
-        >
-          ▶
-        </span>
+          aria-hidden="true"
+        />
       </button>
 
       <div className="absolute bottom-6 w-full px-3">
@@ -139,7 +147,7 @@ export default function Sidebar() {
           font-semibold shadow-lg backdrop-blur-md
           transition-all duration-300 hover:scale-[1.02]"
         >
-          <span className="text-lg">↩</span>
+          <ArrowLeftStartOnRectangleIcon className="h-5 w-5" aria-hidden="true" />
           {open && <span>Logout</span>}
         </button>
       </div>

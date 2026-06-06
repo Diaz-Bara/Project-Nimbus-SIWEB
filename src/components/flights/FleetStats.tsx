@@ -1,6 +1,9 @@
+import { fetchFlightStats } from "@/lib/actions";
+
 export default async function FleetStats() {
-  // Tambahkan simulasi waktu memuat data selama 1.5 detik
-  await new Promise((resolve) => setTimeout(resolve, 1500));
+  const stats = await fetchFlightStats();
+  const efficiency = stats.efficiency;
+
   return (
     <div className="bg-blue-900 text-white p-6 rounded-xl shadow-sm">
 
@@ -9,19 +12,22 @@ export default async function FleetStats() {
       </p>
 
       <h1 className="text-4xl font-bold mb-2">
-        94.2%
+        {efficiency}%
       </h1>
 
       <p className="text-sm text-blue-300 mb-4">
-        +2.1% from yesterday
+        {stats.active} active from {stats.total} flights
       </p>
 
       <div className="h-2 bg-blue-700 rounded mb-2">
-        <div className="h-2 bg-white rounded w-[80%]" />
+        <div
+          className="h-2 bg-white rounded"
+          style={{ width: `${Math.min(efficiency, 100)}%` }}
+        />
       </div>
 
       <p className="text-xs text-blue-300">
-        Capacity Used: 482 / 510 Tons
+        Capacity Used: {stats.used} / {stats.capacity} Tons
       </p>
     </div>
   );

@@ -2,21 +2,22 @@ type Flight = {
   id: number;
   code: string;
   aircraft: string;
-  from: string;
-  fromCity: string;
-  timeFrom: string;
-  to: string;
-  toCity: string;
-  timeTo: string;
-  status: "active" | "delay" | "scheduled";
+  origin_code: string;
+  origin_city: string;
+  departure_time: string;
+  destination_code: string;
+  destination_city: string;
+  arrival_time: string;
+  status: string;
   progress: number;
 };
 
 export default function FlightCard({ flight }: { flight: Flight }) {
+  const status = flight.status.toLowerCase();
   const color =
-    flight.status === "active"
+    status === "active"
       ? "bg-green-500"
-      : flight.status === "delay"
+      : status.includes("delay")
       ? "bg-orange-500"
       : "bg-gray-300";
 
@@ -32,9 +33,9 @@ export default function FlightCard({ flight }: { flight: Flight }) {
 
       {/* FROM */}
       <div className="text-center">
-        <p className="font-semibold">{flight.from}</p>
-        <p className="text-xs text-gray-400">{flight.fromCity}</p>
-        <p className="text-xs">{flight.timeFrom}</p>
+        <p className="font-semibold">{flight.origin_code}</p>
+        <p className="text-xs text-gray-400">{flight.origin_city}</p>
+        <p className="text-xs">{flight.departure_time}</p>
       </div>
 
       {/* PROGRESS */}
@@ -49,9 +50,9 @@ export default function FlightCard({ flight }: { flight: Flight }) {
 
       {/* TO */}
       <div className="text-center">
-        <p className="font-semibold">{flight.to}</p>
-        <p className="text-xs text-gray-400">{flight.toCity}</p>
-        <p className="text-xs">{flight.timeTo}</p>
+        <p className="font-semibold">{flight.destination_code}</p>
+        <p className="text-xs text-gray-400">{flight.destination_city}</p>
+        <p className="text-xs">{flight.arrival_time}</p>
       </div>
     </div>
   );

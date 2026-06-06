@@ -1,15 +1,17 @@
-import { fetchTrackingOverview } from "@/lib/actions";
+import { getTrackingByAwb } from "@/lib/actions";
 
-export default async function TrackingSidebar() {
-  const overview = await fetchTrackingOverview();
-  const shipment = overview.shipment;
+export default async function TrackingSidebar({ awb }: { awb: string }) {
+  const result = (await getTrackingByAwb(awb)) as any;
+  const shipment = result?.success ? result.shipment : null;
 
   return (
     <div className="space-y-4">
       <div className="bg-white p-4 rounded-xl shadow-sm">
         <p className="text-xs text-gray-400 mb-2">SHIPMENT DETAILS</p>
 
-        {!shipment ? (
+        {result && !result.success ? (
+          <p className="text-sm text-red-600">{result.error}</p>
+        ) : !shipment ? (
           <p className="text-sm text-gray-500">No shipment selected.</p>
         ) : (
           <>

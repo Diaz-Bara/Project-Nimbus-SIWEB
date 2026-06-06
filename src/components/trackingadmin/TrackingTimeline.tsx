@@ -1,21 +1,24 @@
-import { fetchTrackingOverview } from "@/lib/actions";
+import { getTrackingByAwb } from "@/lib/actions";
 
-export default async function TrackingTimeline() {
-  const overview = await fetchTrackingOverview();
+export default async function TrackingTimeline({ awb }: { awb: string }) {
+  const result = (await getTrackingByAwb(awb)) as any;
+  const history = result?.success ? result.history : [];
 
   return (
     <div className="bg-white p-4 rounded-xl shadow-sm">
       <p className="text-xs text-gray-400 mb-4">JOURNEY STATUS</p>
 
-      {overview.history.length === 0 ? (
-        <p className="text-sm text-gray-500">No tracking logs available.</p>
+      {result && !result.success ? (
+        <p className="text-sm text-red-600">{result.error}</p>
+      ) : history.length === 0 ? (
+        <p className="text-sm text-gray-500">No tracking logs available for this AWB.</p>
       ) : (
         <div className="space-y-6">
-          {overview.history.map((step, i) => (
+          {history.map((step: any, i: number) => (
             <div key={`${step.status}-${i}`} className="flex gap-4">
               <div className="flex flex-col items-center">
-                <div className={`w-3 h-3 rounded-full ${i === overview.history.length - 1 ? "bg-blue-600" : "bg-gray-300"}`} />
-                {i !== overview.history.length - 1 && <div className="w-[2px] h-10 bg-gray-200" />}
+                <div className={`w-3 h-3 rounded-full ${i === history.length - 1 ? "bg-blue-600" : "bg-gray-300"}`} />
+                {i !== history.length - 1 && <div className="w-[2px] h-10 bg-gray-200" />}
               </div>
 
               <div className="flex-1">

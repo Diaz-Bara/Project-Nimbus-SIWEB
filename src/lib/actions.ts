@@ -9,7 +9,165 @@ import { AuthError } from 'next-auth';
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 const ITEMS_PER_PAGE = 4;
 
+const flightSeedData = [
+  {
+    code: "PT-882",
+    aircraft: "Boeing 777-F",
+    origin_code: "CGK",
+    origin_city: "Jakarta",
+    destination_code: "SIN",
+    destination_city: "Singapore",
+    departure_time: "08:45",
+    arrival_time: "10:30",
+    status: "ACTIVE",
+    progress: 65,
+    capacity_tons: 60,
+    used_tons: 48,
+  },
+  {
+    code: "PT-914",
+    aircraft: "Airbus A330-200F",
+    origin_code: "SIN",
+    origin_city: "Singapore",
+    destination_code: "HKG",
+    destination_city: "Hong Kong",
+    departure_time: "11:15",
+    arrival_time: "15:45",
+    status: "DELAY",
+    progress: 20,
+    capacity_tons: 55,
+    used_tons: 42,
+  },
+  {
+    code: "PT-115",
+    aircraft: "Boeing 747-8F",
+    origin_code: "CGK",
+    origin_city: "Jakarta",
+    destination_code: "NRT",
+    destination_city: "Tokyo",
+    departure_time: "13:00",
+    arrival_time: "21:15",
+    status: "SCHEDULED",
+    progress: 0,
+    capacity_tons: 70,
+    used_tons: 35,
+  },
+  {
+    code: "PT-552",
+    aircraft: "Airbus A350-F",
+    origin_code: "HKG",
+    origin_city: "Hong Kong",
+    destination_code: "LHR",
+    destination_city: "London",
+    departure_time: "16:20",
+    arrival_time: "05:10",
+    status: "ACTIVE",
+    progress: 25,
+    capacity_tons: 65,
+    used_tons: 51,
+  },
+  {
+    code: "PT-771",
+    aircraft: "Boeing 767-F",
+    origin_code: "CGK",
+    origin_city: "Jakarta",
+    destination_code: "DPS",
+    destination_city: "Denpasar",
+    departure_time: "18:10",
+    arrival_time: "20:05",
+    status: "ACTIVE",
+    progress: 80,
+    capacity_tons: 45,
+    used_tons: 38,
+  },
+  {
+    code: "PT-330",
+    aircraft: "Airbus A321P2F",
+    origin_code: "SUB",
+    origin_city: "Surabaya",
+    destination_code: "KNO",
+    destination_city: "Medan",
+    departure_time: "09:30",
+    arrival_time: "12:10",
+    status: "SCHEDULED",
+    progress: 0,
+    capacity_tons: 32,
+    used_tons: 18,
+  },
+];
+
+async function ensureFlightSchema() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS flights (
+      id SERIAL PRIMARY KEY,
+      code TEXT UNIQUE,
+      status TEXT
+    )
+  `;
+
+  await sql`ALTER TABLE flights ADD COLUMN IF NOT EXISTS aircraft TEXT`;
+  await sql`ALTER TABLE flights ADD COLUMN IF NOT EXISTS origin_code TEXT`;
+  await sql`ALTER TABLE flights ADD COLUMN IF NOT EXISTS origin_city TEXT`;
+  await sql`ALTER TABLE flights ADD COLUMN IF NOT EXISTS destination_code TEXT`;
+  await sql`ALTER TABLE flights ADD COLUMN IF NOT EXISTS destination_city TEXT`;
+  await sql`ALTER TABLE flights ADD COLUMN IF NOT EXISTS departure_time TIME`;
+  await sql`ALTER TABLE flights ADD COLUMN IF NOT EXISTS arrival_time TIME`;
+  await sql`ALTER TABLE flights ADD COLUMN IF NOT EXISTS progress INT DEFAULT 0`;
+  await sql`ALTER TABLE flights ADD COLUMN IF NOT EXISTS capacity_tons INT DEFAULT 0`;
+  await sql`ALTER TABLE flights ADD COLUMN IF NOT EXISTS used_tons INT DEFAULT 0`;
+  await sql`ALTER TABLE flights ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()`;
+  await sql`ALTER TABLE flights ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()`;
+
+  for (const flight of flightSeedData) {
+    await sql`
+      INSERT INTO flights (
+        code,
+        aircraft,
+        origin_code,
+        origin_city,
+        destination_code,
+        destination_city,
+        departure_time,
+        arrival_time,
+        status,
+        progress,
+        capacity_tons,
+        used_tons
+      )
+      VALUES (
+        ${flight.code},
+        ${flight.aircraft},
+        ${flight.origin_code},
+        ${flight.origin_city},
+        ${flight.destination_code},
+        ${flight.destination_city},
+        ${flight.departure_time},
+        ${flight.arrival_time},
+        ${flight.status},
+        ${flight.progress},
+        ${flight.capacity_tons},
+        ${flight.used_tons}
+      )
+      ON CONFLICT (code) DO UPDATE SET
+        aircraft = COALESCE(flights.aircraft, EXCLUDED.aircraft),
+        origin_code = COALESCE(flights.origin_code, EXCLUDED.origin_code),
+        origin_city = COALESCE(flights.origin_city, EXCLUDED.origin_city),
+        destination_code = COALESCE(flights.destination_code, EXCLUDED.destination_code),
+        destination_city = COALESCE(flights.destination_city, EXCLUDED.destination_city),
+        departure_time = COALESCE(flights.departure_time, EXCLUDED.departure_time),
+        arrival_time = COALESCE(flights.arrival_time, EXCLUDED.arrival_time),
+        status = COALESCE(flights.status, EXCLUDED.status),
+        progress = COALESCE(flights.progress, EXCLUDED.progress),
+        capacity_tons = COALESCE(flights.capacity_tons, EXCLUDED.capacity_tons),
+        used_tons = COALESCE(flights.used_tons, EXCLUDED.used_tons),
+        updated_at = NOW()
+    `;
+  }
+}
+
 async function ensureCargoSchema() {
+  await ensureFlightSchema();
+
   const tables = await sql`
     SELECT
       to_regclass('public.shipments') AS shipments,
@@ -188,18 +346,18 @@ export async function fetchShipmentStats() {
       SELECT
         COUNT(*)::int AS total,
         COUNT(*) FILTER (WHERE status ILIKE '%transit%')::int AS in_transit,
-        COUNT(*) FILTER (WHERE status ILIKE '%pending%' OR status ILIKE '%flag%')::int AS flagged
+        COUNT(*) FILTER (WHERE status ILIKE '%cancel%')::int AS canceled
       FROM shipments
     `;
 
     return {
       total: Number(data[0]?.total || 0),
       inTransit: Number(data[0]?.in_transit || 0),
-      flagged: Number(data[0]?.flagged || 0),
+      canceled: Number(data[0]?.canceled || 0),
     };
   } catch (error) {
     console.error("Fetch shipment stats error:", error);
-    return { total: 0, inTransit: 0, flagged: 0 };
+    return { total: 0, inTransit: 0, canceled: 0 };
   }
 }
 
@@ -218,6 +376,132 @@ export async function fetchRecentShipments(limit = 5) {
   } catch (error) {
     console.error("Fetch recent shipments error:", error);
     return [];
+  }
+}
+
+export async function fetchFlights(query: string, currentPage: number) {
+  await ensureFlightSchema();
+  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+
+  try {
+    const data = await sql`
+      SELECT
+        id,
+        code,
+        COALESCE(aircraft, 'Cargo Aircraft') AS aircraft,
+        COALESCE(origin_code, 'CGK') AS origin_code,
+        COALESCE(origin_city, 'Jakarta') AS origin_city,
+        COALESCE(destination_code, 'SIN') AS destination_code,
+        COALESCE(destination_city, 'Singapore') AS destination_city,
+        TO_CHAR(COALESCE(departure_time, TIME '08:00'), 'HH24:MI') AS departure_time,
+        TO_CHAR(COALESCE(arrival_time, TIME '10:00'), 'HH24:MI') AS arrival_time,
+        COALESCE(status, 'SCHEDULED') AS status,
+        COALESCE(progress, 0) AS progress,
+        COALESCE(capacity_tons, 0) AS capacity_tons,
+        COALESCE(used_tons, 0) AS used_tons
+      FROM flights
+      WHERE
+        code ILIKE ${`%${query}%`} OR
+        COALESCE(aircraft, '') ILIKE ${`%${query}%`} OR
+        COALESCE(origin_code, '') ILIKE ${`%${query}%`} OR
+        COALESCE(origin_city, '') ILIKE ${`%${query}%`} OR
+        COALESCE(destination_code, '') ILIKE ${`%${query}%`} OR
+        COALESCE(destination_city, '') ILIKE ${`%${query}%`} OR
+        COALESCE(status, '') ILIKE ${`%${query}%`}
+      ORDER BY id ASC
+      LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
+    `;
+
+    return data as any[];
+  } catch (error) {
+    console.error("Fetch flights error:", error);
+    return [];
+  }
+}
+
+export async function fetchFlightsPages(query: string) {
+  await ensureFlightSchema();
+
+  try {
+    const count = await sql`
+      SELECT COUNT(*)
+      FROM flights
+      WHERE
+        code ILIKE ${`%${query}%`} OR
+        COALESCE(aircraft, '') ILIKE ${`%${query}%`} OR
+        COALESCE(origin_code, '') ILIKE ${`%${query}%`} OR
+        COALESCE(origin_city, '') ILIKE ${`%${query}%`} OR
+        COALESCE(destination_code, '') ILIKE ${`%${query}%`} OR
+        COALESCE(destination_city, '') ILIKE ${`%${query}%`} OR
+        COALESCE(status, '') ILIKE ${`%${query}%`}
+    `;
+
+    return Math.ceil(Number(count[0].count) / ITEMS_PER_PAGE);
+  } catch (error) {
+    console.error("Fetch flights pages error:", error);
+    return 0;
+  }
+}
+
+export async function fetchDashboardFlights(limit = 3) {
+  await ensureFlightSchema();
+
+  try {
+    const data = await sql`
+      SELECT
+        id,
+        code,
+        COALESCE(status, 'SCHEDULED') AS status,
+        TO_CHAR(COALESCE(departure_time, TIME '08:00'), 'HH24:MI') AS departure_time,
+        TO_CHAR(COALESCE(arrival_time, TIME '10:00'), 'HH24:MI') AS arrival_time,
+        COALESCE(origin_code, 'CGK') AS origin_code,
+        COALESCE(destination_code, 'SIN') AS destination_code
+      FROM flights
+      ORDER BY
+        CASE
+          WHEN status ILIKE 'ACTIVE' THEN 1
+          WHEN status ILIKE 'DELAY%' THEN 2
+          ELSE 3
+        END,
+        id ASC
+      LIMIT ${limit}
+    `;
+
+    return data as any[];
+  } catch (error) {
+    console.error("Fetch dashboard flights error:", error);
+    return [];
+  }
+}
+
+export async function fetchFlightStats() {
+  await ensureFlightSchema();
+
+  try {
+    const data = await sql`
+      SELECT
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE status ILIKE 'ACTIVE')::int AS active,
+        COALESCE(SUM(capacity_tons), 0)::int AS capacity,
+        COALESCE(SUM(used_tons), 0)::int AS used
+      FROM flights
+    `;
+
+    const total = Number(data[0]?.total || 0);
+    const active = Number(data[0]?.active || 0);
+    const capacity = Number(data[0]?.capacity || 0);
+    const used = Number(data[0]?.used || 0);
+
+    return {
+      total,
+      active,
+      capacity,
+      used,
+      efficiency: capacity > 0 ? Math.round((used / capacity) * 1000) / 10 : 0,
+    };
+  } catch (error) {
+    console.error("Fetch flight stats error:", error);
+    return { total: 0, active: 0, capacity: 0, used: 0, efficiency: 0 };
   }
 }
 
