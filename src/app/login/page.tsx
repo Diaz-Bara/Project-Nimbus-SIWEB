@@ -1,59 +1,44 @@
 "use client";
 
 import Image from "next/image";
-import { useRef } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { loginAction } from "@/app/login/actions";
 
 export default function LoginPage() {
   const router = useRouter();
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
 
-  const emailRef = useRef<HTMLInputElement>(null);
-  const passwordRef = useRef<HTMLInputElement>(null);
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
 
-  const handleLogin = (e?: React.FormEvent) => {
-    e?.preventDefault();
+    try {
+      const formData = new FormData();
+      formData.append("email", email.trim().toLowerCase());
+      formData.append("password", password.trim());
 
-    const email = emailRef.current?.value.trim().toLowerCase();
-    const password = passwordRef.current?.value.trim();
+      const result = await loginAction(undefined, formData);
 
-    //  MULTI USER (ADMIN + OPERATOR)
-    const users = [
-      {
-        email: "admin",
-        password: "admin123",
-        role: "admin",
-      },
-      {
-        email: "operator",
-        password: "operator123",
-        role: "operator",
-      },
-    ];
-
-    const foundUser = users.find(
-      (u) => u.email === email && u.password === password
-    );
-
-    if (foundUser) {
-      // simpan user ke localStorage
-      localStorage.setItem("user", JSON.stringify(foundUser));
-      document.cookie = `app_user=${foundUser.email}; path=/; max-age=86400; SameSite=Lax`;
-      document.cookie = `app_role=${foundUser.role}; path=/; max-age=86400; SameSite=Lax`;
-
-      // redirect (semua ke dashboard dulu)
-      router.push("/dashboard");
-    } else {
-      alert("Email atau password salah!");
+      if (typeof result === "string") {
+        setError(result);
+      } else {
+        router.push("/dashboard");
+      }
+    } catch {
+      setError("Terjadi kesalahan, coba lagi.");
     }
+
+    setLoading(false);
   };
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 relative">
-
-      {/* CARD */}
       <div className="bg-white w-full max-w-sm p-6 rounded-2xl shadow-lg">
-
-        {/* LOGO */}
         <div className="flex flex-col items-center mb-4">
           <Image src="/logo.png" alt="logo" width={60} height={60} />
           <h1 className="text-sm font-semibold mt-2 text-gray-700">
@@ -61,50 +46,52 @@ export default function LoginPage() {
           </h1>
         </div>
 
-        {/* TITLE */}
-        <h2 className="text-center font-semibold text-gray-700 mb-1">
-          Login
-        </h2>
+        <h2 className="text-center font-semibold text-gray-700 mb-1">Login</h2>
         <p className="text-center text-xs text-gray-400 mb-4">
           Enter your credentials to access the system
         </p>
 
+        {error && (
+          <div className="mb-3 p-2 bg-red-50 border border-red-200 text-red-600 text-xs rounded-lg text-center">
+            {error}
+          </div>
+        )}
+
         <form onSubmit={handleLogin}>
-          {/* INPUT (TIDAK DIUBAH UI) */}
           <input
-            ref={emailRef}
-            type="text"
-            placeholder="Email or Username"
+            type="email"
+            placeholder="Email"
             className="w-full border rounded-lg px-3 py-2 mb-3 text-sm"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            required
           />
 
           <input
-            ref={passwordRef}
             type="password"
             placeholder="Password"
             className="w-full border rounded-lg px-3 py-2 mb-3 text-sm"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            required
           />
 
-          {/* OPTIONS */}
           <div className="flex justify-between text-xs mb-4">
             <label className="flex items-center gap-1">
               <input type="checkbox" />
               Remember me
             </label>
-            <span className="text-blue-500 cursor-pointer">
-              Forgot password?
-            </span>
+            <span className="text-blue-500 cursor-pointer">Forgot password?</span>
           </div>
 
-          {/* BUTTON */}
           <button
             type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded-lg mb-3 hover:bg-blue-700 transition"
+            disabled={loading}
+            className="w-full bg-blue-600 text-white py-2 rounded-lg mb-3 hover:bg-blue-700 transition disabled:opacity-50"
           >
-            LOGIN
+            {loading ? "Logging in..." : "LOGIN"}
           </button>
         </form>
-
       </div>
     </div>
   );

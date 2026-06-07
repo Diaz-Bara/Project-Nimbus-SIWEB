@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { saveShipment } from "@/lib/actions";
+import { saveShipment, getNextAwb } from "@/lib/actions";
 
 type Shipment = {
   id: number;
@@ -14,9 +14,7 @@ type Shipment = {
   destination: string;
   phone_number?: string;
   item_type?: string;
-  vehicle_type?: string;
   weight: number;
-  pieces: number;
   price?: number;
   shipping_date?: string | Date;
   service_level?: string;
@@ -28,12 +26,11 @@ type ShipmentFormProps = {
   data?: Shipment | null;
 };
 
-function generateAwb() {
-  const today = new Date();
-  const date = today.toISOString().slice(2, 10).replace(/-/g, "");
-  const random = Math.random().toString(36).slice(2, 6).toUpperCase();
-  return `AWB-${date}-${random}`;
-}
+const SERVICE_RATES: Record<string, number> = {
+  "Express Priority": 50000,
+  "Standard Cargo": 30000,
+  "Economy Cargo": 20000,
+};
 
 function formatDate(value?: string | Date) {
   if (!value) return new Date().toISOString().slice(0, 10);
@@ -41,19 +38,25 @@ function formatDate(value?: string | Date) {
   return value.slice(0, 10);
 }
 
+function calcPrice(weight: string, serviceLevel: string): string {
+  const w = parseFloat(weight) || 0;
+  const rate = SERVICE_RATES[serviceLevel] || 0;
+  return (w * rate).toString();
+}
+
 export default function ShipmentForm({ data }: ShipmentFormProps) {
   const router = useRouter();
+  const [awb, setAwb] = useState(data?.awb || "");
+  const [loadingAwb, setLoadingAwb] = useState(!data);
+
   const [form, setForm] = useState({
-    awb: data?.awb || generateAwb(),
     sender_name: data?.sender_name || "",
     recipient_name: data?.recipient_name || "",
     origin: data?.origin || "",
     destination: data?.destination || "",
     phone_number: data?.phone_number || "",
     item_type: data?.item_type || "",
-    vehicle_type: data?.vehicle_type || "Air Cargo",
     weight: data?.weight?.toString() || "",
-    pieces: data?.pieces?.toString() || "1",
     price: data?.price?.toString() || "0",
     shipping_date: formatDate(data?.shipping_date),
     service_level: data?.service_level || "Express Priority",
@@ -66,18 +69,34 @@ export default function ShipmentForm({ data }: ShipmentFormProps) {
   const [isFormLoading, setIsFormLoading] = useState(true);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    if (!data) {
+      getNextAwb().then((next) => {
+        setAwb(next);
+        setLoadingAwb(false);
+      });
+    } else {
+      setLoadingAwb(false);
+    }
+  }, [data]);
+
+  useEffect(() => {
+    if (!isFormLoading) {
       setIsFormLoading(false);
-    }, 500);
-    return () => clearTimeout(timer);
+    }
   }, []);
+
+  useEffect(() => {
+    const newPrice = calcPrice(form.weight, form.service_level);
+    setForm((prev) => ({ ...prev, price: newPrice }));
+  }, [form.weight, form.service_level]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSaving(true);
     setMessage(null);
 
-    const result = await saveShipment(form, !!data?.id, data?.id);
+    const payload = { ...form, awb };
+    const result = await saveShipment(payload, !!data?.id, data?.id);
 
     if (result.success) {
       router.push("/shipments");
@@ -87,27 +106,6 @@ export default function ShipmentForm({ data }: ShipmentFormProps) {
     }
 
     setIsSaving(false);
-  };
-
-  const handleClear = () => {
-    setForm({
-      awb: generateAwb(),
-      sender_name: "",
-      recipient_name: "",
-      origin: "",
-      destination: "",
-      phone_number: "",
-      item_type: "",
-      vehicle_type: "Air Cargo",
-      weight: "",
-      pieces: "1",
-      price: "0",
-      shipping_date: new Date().toISOString().slice(0, 10),
-      service_level: "Express Priority",
-      status: "In Transit",
-      description: "",
-    });
-    setMessage(null);
   };
 
   const updateField = (name: keyof typeof form, value: string) => {
@@ -120,7 +118,7 @@ export default function ShipmentForm({ data }: ShipmentFormProps) {
         {data ? "Update Shipment" : "Create New Shipment"}
       </h2>
 
-      {isFormLoading ? (
+      {isFormLoading || loadingAwb ? (
         <div className="animate-pulse">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
             {[1, 2, 3, 4, 5, 6, 7, 8].map((i) => (
@@ -139,15 +137,18 @@ export default function ShipmentForm({ data }: ShipmentFormProps) {
             </div>
           )}
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-12 gap-y-8">
             <div className="space-y-6">
+              <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+                Shipment Information
+              </h3>
+
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">AWB / No Resi</label>
+                <label className="block text-sm font-medium text-gray-700 mb-2">AWB Number</label>
                 <input
-                  required
-                  className="w-full pb-2 border-b border-gray-200 outline-none focus:border-[#0a327d] text-sm text-gray-800 bg-transparent"
-                  value={form.awb}
-                  onChange={(e) => updateField("awb", e.target.value)}
+                  readOnly
+                  className="w-full pb-2 border-b border-gray-200 outline-none text-sm text-gray-500 bg-gray-50 cursor-not-allowed"
+                  value={awb}
                 />
               </div>
 
@@ -155,6 +156,7 @@ export default function ShipmentForm({ data }: ShipmentFormProps) {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Sender Name</label>
                 <input
                   required
+                  type="text"
                   placeholder="Nama pengirim"
                   className="w-full pb-2 border-b border-gray-200 outline-none focus:border-[#0a327d] text-sm text-gray-800 bg-transparent"
                   value={form.sender_name}
@@ -166,6 +168,7 @@ export default function ShipmentForm({ data }: ShipmentFormProps) {
                 <label className="block text-sm font-medium text-gray-700 mb-2">Recipient Name</label>
                 <input
                   required
+                  type="text"
                   placeholder="Nama penerima"
                   className="w-full pb-2 border-b border-gray-200 outline-none focus:border-[#0a327d] text-sm text-gray-800 bg-transparent"
                   value={form.recipient_name}
@@ -174,40 +177,98 @@ export default function ShipmentForm({ data }: ShipmentFormProps) {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Origin</label>
-                <input
-                  required
-                  placeholder="Kota asal"
-                  className="w-full pb-2 border-b border-gray-200 outline-none focus:border-[#0a327d] text-sm text-gray-800 bg-transparent"
-                  value={form.origin}
-                  onChange={(e) => updateField("origin", e.target.value)}
-                />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Destination</label>
-                <input
-                  required
-                  placeholder="Kota tujuan"
-                  className="w-full pb-2 border-b border-gray-200 outline-none focus:border-[#0a327d] text-sm text-gray-800 bg-transparent"
-                  value={form.destination}
-                  onChange={(e) => updateField("destination", e.target.value)}
-                />
-              </div>
-
-              <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Phone Number</label>
                 <input
                   required
-                  placeholder="081234567890"
+                  type="text"
+                  placeholder="Nomor telepon"
                   className="w-full pb-2 border-b border-gray-200 outline-none focus:border-[#0a327d] text-sm text-gray-800 bg-transparent"
                   value={form.phone_number}
                   onChange={(e) => updateField("phone_number", e.target.value)}
                 />
               </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Origin</label>
+                  <input
+                    required
+                    type="text"
+                    placeholder="Kota asal"
+                    className="w-full pb-2 border-b border-gray-200 outline-none focus:border-[#0a327d] text-sm text-gray-800 bg-transparent"
+                    value={form.origin}
+                    onChange={(e) => updateField("origin", e.target.value)}
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Destination</label>
+                  <input
+                    required
+                    type="text"
+                    placeholder="Kota tujuan"
+                    className="w-full pb-2 border-b border-gray-200 outline-none focus:border-[#0a327d] text-sm text-gray-800 bg-transparent"
+                    value={form.destination}
+                    onChange={(e) => updateField("destination", e.target.value)}
+                  />
+                </div>
+              </div>
             </div>
 
             <div className="space-y-6">
+              <h3 className="text-sm font-semibold text-gray-400 uppercase tracking-wider">
+                Cargo Details
+              </h3>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Item Type</label>
+                <input
+                  required
+                  type="text"
+                  placeholder="Jenis barang"
+                  className="w-full pb-2 border-b border-gray-200 outline-none focus:border-[#0a327d] text-sm text-gray-800 bg-transparent"
+                  value={form.item_type}
+                  onChange={(e) => updateField("item_type", e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Weight (KG)</label>
+                <input
+                  required
+                  type="number"
+                  min="1"
+                  placeholder="Berat dalam KG"
+                  className="w-full pb-2 border-b border-gray-200 outline-none focus:border-[#0a327d] text-sm text-gray-800 bg-transparent"
+                  value={form.weight}
+                  onChange={(e) => updateField("weight", e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Service Level</label>
+                <select
+                  required
+                  className="w-full pb-2 border-b border-gray-200 outline-none focus:border-[#0a327d] text-sm text-gray-800 bg-transparent"
+                  value={form.service_level}
+                  onChange={(e) => updateField("service_level", e.target.value)}
+                >
+                  <option value="Express Priority">Express Priority — Rp 50.000/KG</option>
+                  <option value="Standard Cargo">Standard Cargo — Rp 30.000/KG</option>
+                  <option value="Economy Cargo">Economy Cargo — Rp 20.000/KG</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Shipping Price</label>
+                <input
+                  readOnly
+                  type="text"
+                  className="w-full pb-2 border-b border-gray-200 outline-none text-sm text-gray-500 bg-gray-50 cursor-not-allowed"
+                  value={`Rp ${(parseFloat(form.price) || 0).toLocaleString("id-ID")}`}
+                />
+                <input type="hidden" value={form.price} name="price" />
+              </div>
+
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">Shipping Date</label>
                 <input
@@ -217,86 +278,6 @@ export default function ShipmentForm({ data }: ShipmentFormProps) {
                   value={form.shipping_date}
                   onChange={(e) => updateField("shipping_date", e.target.value)}
                 />
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Item Type</label>
-                <input
-                  required
-                  placeholder="Dokumen, elektronik, pakaian"
-                  className="w-full pb-2 border-b border-gray-200 outline-none focus:border-[#0a327d] text-sm text-gray-800 bg-transparent"
-                  value={form.item_type}
-                  onChange={(e) => updateField("item_type", e.target.value)}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Weight (KG)</label>
-                  <input
-                    required
-                    type="number"
-                    step="0.01"
-                    min="0.01"
-                    className="w-full pb-2 border-b border-gray-200 outline-none focus:border-[#0a327d] text-sm text-gray-800 bg-transparent"
-                    value={form.weight}
-                    onChange={(e) => updateField("weight", e.target.value)}
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Pieces</label>
-                  <input
-                    required
-                    type="number"
-                    min="1"
-                    className="w-full pb-2 border-b border-gray-200 outline-none focus:border-[#0a327d] text-sm text-gray-800 bg-transparent"
-                    value={form.pieces}
-                    onChange={(e) => updateField("pieces", e.target.value)}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">Shipping Price</label>
-                <input
-                  required
-                  type="number"
-                  min="0"
-                  className="w-full pb-2 border-b border-gray-200 outline-none focus:border-[#0a327d] text-sm text-gray-800 bg-transparent"
-                  value={form.price}
-                  onChange={(e) => updateField("price", e.target.value)}
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Vehicle Type</label>
-                  <select
-                    required
-                    className="w-full pb-2 border-b border-gray-200 outline-none focus:border-[#0a327d] text-sm text-gray-800 bg-transparent"
-                    value={form.vehicle_type}
-                    onChange={(e) => updateField("vehicle_type", e.target.value)}
-                  >
-                    <option value="Air Cargo">Air Cargo</option>
-                    <option value="Truck">Truck</option>
-                    <option value="Ship">Ship</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Service Level</label>
-                  <select
-                    required
-                    className="w-full pb-2 border-b border-gray-200 outline-none focus:border-[#0a327d] text-sm text-gray-800 bg-transparent"
-                    value={form.service_level}
-                    onChange={(e) => updateField("service_level", e.target.value)}
-                  >
-                    <option value="Express Priority">Express Priority</option>
-                    <option value="Standard Cargo">Standard Cargo</option>
-                    <option value="Economy Cargo">Economy Cargo</option>
-                  </select>
-                </div>
               </div>
 
               <div>
@@ -329,7 +310,13 @@ export default function ShipmentForm({ data }: ShipmentFormProps) {
             />
           </div>
 
-          <div className="flex justify-start gap-4 mt-10">
+          <div className="flex justify-end gap-3 mt-8">
+            <Link
+              href="/shipments"
+              className="px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50"
+            >
+              Back
+            </Link>
             <button
               type="submit"
               disabled={isSaving}
@@ -337,21 +324,6 @@ export default function ShipmentForm({ data }: ShipmentFormProps) {
             >
               {isSaving ? "Processing..." : data ? "Update Shipment" : "Save Shipment"}
             </button>
-
-            <button
-              type="button"
-              onClick={handleClear}
-              className="px-6 py-2.5 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-50"
-            >
-              Clear
-            </button>
-
-            <Link
-              href="/shipments"
-              className="bg-blue-600 hover:bg-blue-700 text-white px-8 py-2.5 rounded-lg text-sm font-medium ml-auto"
-            >
-              Back
-            </Link>
           </div>
         </form>
       )}

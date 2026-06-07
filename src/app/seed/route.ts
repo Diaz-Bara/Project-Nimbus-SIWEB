@@ -1,5 +1,5 @@
 import postgres from "postgres";
-import bcrypt from "bcrypt";
+import bcrypt from "bcryptjs";
 
 const sql = postgres(process.env.POSTGRES_URL!, {
   ssl: "require",
@@ -123,21 +123,20 @@ export async function GET() {
           flight_id INT REFERENCES flights(id) ON DELETE CASCADE,
           sender_name TEXT,
           weight INT,
-          pieces INT,
+          
           price INT,
           status TEXT,
           shipping_date DATE,
           service_level TEXT,
           description TEXT,
           item_type TEXT,
-          vehicle_type TEXT,
           created_at TIMESTAMP DEFAULT NOW(),
           updated_at TIMESTAMP DEFAULT NOW()
         );
       `;
       const awbs = ["AWB-001", "AWB-002", "AWB-003", "AWB-004", "AWB-005", "AWB-006", "AWB-007", "AWB-008", "AWB-009", "AWB-010"];
       const weights = [120, 450, 80, 1500, 310, 620, 95, 1100, 240, 500];
-      const prices = [1500000, 4200000, 900000, 12500000, 3200000, 5800000, 1100000, 9800000, 2100000, 4500000];
+      const serviceLevels = ["Express Priority", "Standard Cargo", "Economy Cargo", "Express Priority", "Standard Cargo", "Economy Cargo", "Express Priority", "Standard Cargo", "Economy Cargo", "Express Priority"];
       const senders = ["Raka Pratama", "Maya Santoso", "Nadia Putri", "Fajar Akbar", "Dimas Surya", "Lina Kartika", "Seno Wibowo", "Clara Wijaya", "Yusuf Hadi", "Rani Amelia"];
       const itemTypes = ["Dokumen", "Elektronik", "Pakaian", "Suku Cadang Mesin", "Kosmetik", "Makanan Kering", "Obat-obatan", "Mainan Anak", "Perabotan", "Bahan Kimia Aman"];
 
@@ -147,7 +146,7 @@ export async function GET() {
         
         // Data dummy untuk 3 kolom baru
         const tglKirim = `2026-05-${String(i + 1).padStart(2, '0')}`;
-        const serviceLvl = i % 2 === 0 ? 'Express Priority' : 'Standard Cargo';
+        const serviceLvl = serviceLevels[i];
         const desc = `Barang kargo batch ${i + 1} dalam kondisi baik.`;
 
         await sql`
@@ -157,29 +156,26 @@ export async function GET() {
             flight_id,
             sender_name,
             weight,
-            pieces,
+            
             price,
             status,
             shipping_date,
             service_level,
             description,
-            item_type,
-            vehicle_type
-          ) 
+            item_type
+          )
           VALUES (
             ${awbs[i]},
             ${custId},
             ${flightId},
             ${senders[i]},
             ${weights[i]},
-            ${i + 1},
-            ${prices[i]},
+            ${serviceLvl === "Express Priority" ? weights[i] * 50000 : serviceLvl === "Standard Cargo" ? weights[i] * 30000 : weights[i] * 20000},
             'In Transit',
             ${tglKirim},
             ${serviceLvl},
             ${desc},
-            ${itemTypes[i]},
-            'Air Cargo'
+            ${itemTypes[i]}
           )
         `;
       }

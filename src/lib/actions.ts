@@ -3,12 +3,24 @@
 import postgres from 'postgres';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { signIn } from '@/auth';
-import { AuthError } from 'next-auth';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+export { sql };
 const ITEMS_PER_PAGE = 4;
+
+export async function getNextAwb(): Promise<string> {
+  const result = await sql`SELECT COUNT(*)::int AS count FROM shipments`;
+  const count = result[0]?.count || 0;
+  const nextNum = count + 1;
+  return `AWB-${String(nextNum).padStart(3, '0')}`;
+}
+
+const SERVICE_RATES: Record<string, number> = {
+  "Express Priority": 50000,
+  "Standard Cargo": 30000,
+  "Economy Cargo": 20000,
+};
 
 type UserFormData = {
   name: string;
@@ -326,10 +338,8 @@ async function ensureCargoSchema() {
   }
 
   await sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS sender_name TEXT`;
-  await sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS pieces INT DEFAULT 1`;
-  await sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS item_type TEXT`;
-  await sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS vehicle_type TEXT`;
-  await sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()`;
+    await sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS item_type TEXT`;
+    await sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()`;
   await sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()`;
   await sql`ALTER TABLE shipment_details ADD COLUMN IF NOT EXISTS phone_number TEXT`;
 
@@ -348,21 +358,7 @@ async function ensureCargoSchema() {
 // ==========================================
 // 1. AUTENTIKASI (LOGIN)
 // ==========================================
-export async function authenticate(prevState: string | undefined, formData: FormData) {
-  try {
-    await signIn('credentials', formData);
-  } catch (error) {
-    if (error instanceof AuthError) {
-      switch (error.type) {
-        case 'CredentialsSignin':
-          return 'Email atau password salah.';
-        default:
-          return 'Terjadi kesalahan sistem.';
-      }
-    }
-    throw error;
-  }
-}
+/* moved */
 
 export async function fetchUsers(query: string, currentPage: number) {
   await ensureUserSchema();
@@ -559,14 +555,11 @@ const ShipmentSchema = z.object({
   sender_name: z.string().min(1, "Nama pengirim wajib diisi."),
   recipient_name: z.string().min(1, "Nama penerima wajib diisi."),
   weight: z.coerce.number().gt(0, "Berat harus lebih dari 0."),
-  pieces: z.coerce.number().int().gt(0, "Jumlah pieces harus lebih dari 0."),
-  price: z.coerce.number().gte(0, "Tarif pengiriman tidak boleh negatif."),
-  status: z.string().min(1, "Status wajib dipilih."),
+      status: z.string().min(1, "Status wajib dipilih."),
   shipping_date: z.string().min(1, "Tanggal kirim wajib diisi."),
   service_level: z.string().min(1, "Jenis pengiriman wajib dipilih."),
   item_type: z.string().min(1, "Jenis barang wajib diisi."),
-  vehicle_type: z.string().min(1, "Jenis kendaraan wajib diisi."),
-  description: z.string().min(1, "Deskripsi wajib diisi."),
+    description: z.string().min(1, "Deskripsi wajib diisi."),
   origin: z.string().min(1, "Kota asal wajib diisi."),
   destination: z.string().min(1, "Kota tujuan wajib diisi."),
   phone_number: z
@@ -587,15 +580,13 @@ export async function fetchShipments(query: string, currentPage: number) {
         s.awb,
         COALESCE(s.sender_name, '') AS sender_name,
         s.weight,
-        COALESCE(s.pieces, 1) AS pieces,
-        COALESCE(s.price, 0) AS price,
+                COALESCE(s.price, 0) AS price,
         s.status,
         s.shipping_date,
         s.service_level,
         s.description,
         COALESCE(s.item_type, '') AS item_type,
-        COALESCE(s.vehicle_type, '') AS vehicle_type,
-        sd.origin,
+                sd.origin,
         sd.destination,
         sd.recipient_name,
         sd.phone_number
@@ -648,15 +639,13 @@ export async function fetchShipmentById(id: number) {
         s.awb,
         COALESCE(s.sender_name, '') AS sender_name,
         s.weight,
-        COALESCE(s.pieces, 1) AS pieces,
-        COALESCE(s.price, 0) AS price,
+                COALESCE(s.price, 0) AS price,
         s.status,
         s.shipping_date,
         s.service_level,
         s.description,
         COALESCE(s.item_type, '') AS item_type,
-        COALESCE(s.vehicle_type, '') AS vehicle_type,
-        sd.origin,
+                sd.origin,
         sd.destination,
         sd.recipient_name,
         sd.phone_number
@@ -680,18 +669,19 @@ export async function fetchShipmentStats() {
       SELECT
         COUNT(*)::int AS total,
         COUNT(*) FILTER (WHERE status ILIKE '%transit%')::int AS in_transit,
+        COUNT(*) FILTER (WHERE status ILIKE '%deliver%')::int AS delivered,
         COUNT(*) FILTER (WHERE status ILIKE '%cancel%')::int AS canceled
       FROM shipments
     `;
-
     return {
       total: Number(data[0]?.total || 0),
       inTransit: Number(data[0]?.in_transit || 0),
+      delivered: Number(data[0]?.delivered || 0),
       canceled: Number(data[0]?.canceled || 0),
     };
   } catch (error) {
     console.error("Fetch shipment stats error:", error);
-    return { total: 0, inTransit: 0, canceled: 0 };
+    return { total: 0, inTransit: 0, delivered: 0, canceled: 0 };
   }
 }
 
@@ -839,101 +829,99 @@ export async function fetchFlightStats() {
   }
 }
 
-export async function saveShipment(formData: any, isUpdate: boolean, id?: number) {
-  await ensureCargoSchema();
+export async function saveShipment(formData: any, isUpdate = false, id?: number) {
+  const SERVICE_RATES: Record<string, number> = {
+    "Express Priority": 50000,
+    "Standard Cargo": 30000,
+    "Economy Cargo": 20000,
+  };
+
+  // Enforce backend price calculation
+  const weight = Number(formData.weight) || 0;
+  const serviceLevel = formData.service_level || "Express Priority";
+  const rate = SERVICE_RATES[serviceLevel] || 0;
+  const price = weight * rate;
+
+  let awb = formData.awb;
+  if (!isUpdate) {
+    // Auto-generate AWB if not provided
+    if (!awb) {
+      const result = await sql`SELECT COUNT(*)::int AS count FROM shipments`;
+      const count = result[0]?.count || 0;
+      awb = `AWB-${String(count + 1).padStart(3, '0')}`;
+    }
+  }
+
   try {
-    // Mengecek kelengkapan dan tipe data form menggunakan Zod
-    const validatedData = ShipmentSchema.safeParse(formData);
-    
-    // UGD: Pesan error form tidak lengkap/tipe tidak sesuai
-    if (!validatedData.success) {
-      console.error(validatedData.error.flatten());
-      return { success: false, error: "Form tidak lengkap atau tipe data tidak sesuai DB. Mohon periksa kembali input Anda." };
-    }
+    await sql.begin(async (sql) => {
+      if (isUpdate && id) {
+        await sql`
+          UPDATE shipments 
+          SET
+            sender_name = ${formData.sender_name},
+            weight = ${weight},
+            price = ${price},
+            status = ${formData.status},
+            shipping_date = ${formData.shipping_date},
+            service_level = ${serviceLevel},
+            description = ${formData.description},
+            item_type = ${formData.item_type || ''},
+            updated_at = NOW()
+          WHERE id = ${id}
+        `;
+        await sql`
+          UPDATE shipment_details 
+          SET
+            origin = ${formData.origin},
+            destination = ${formData.destination},
+            recipient_name = ${formData.recipient_name},
+            phone_number = ${formData.phone_number}
+          WHERE shipment_id = ${id}
+        `;
+      } else {
+        const newShipment = await sql`
+          INSERT INTO shipments (
+            awb,
+            customer_id,
+            flight_id,
+            sender_name,
+            weight,
+            price,
+            status,
+            shipping_date,
+            service_level,
+            description,
+            item_type
+          )
+          VALUES (
+            ${awb},
+            1,
+            1,
+            ${formData.sender_name},
+            ${weight},
+            ${price},
+            ${formData.status || 'In Transit'},
+            ${formData.shipping_date},
+            ${serviceLevel},
+            ${formData.description || ''},
+            ${formData.item_type || ''}
+          )
+          RETURNING id
+        `;
+        const newId = newShipment[0].id;
+        
+        await sql`
+          INSERT INTO shipment_details (shipment_id, origin, destination, recipient_name, phone_number)
+          VALUES (${newId}, ${formData.origin}, ${formData.destination}, ${formData.recipient_name}, ${formData.phone_number})
+        `;
+      }
+    });
 
-    if (isUpdate && id) {
-      await sql`
-        UPDATE shipments 
-        SET
-          awb = ${formData.awb},
-          sender_name = ${formData.sender_name},
-          weight = ${Number(formData.weight)},
-          pieces = ${Number(formData.pieces)},
-          price = ${Number(formData.price)},
-          status = ${formData.status},
-          shipping_date = ${formData.shipping_date},
-          service_level = ${formData.service_level},
-          description = ${formData.description},
-          item_type = ${formData.item_type},
-          vehicle_type = ${formData.vehicle_type},
-          updated_at = NOW()
-        WHERE id = ${id}
-      `;
-      await sql`
-        UPDATE shipment_details 
-        SET
-          origin = ${formData.origin},
-          destination = ${formData.destination},
-          recipient_name = ${formData.recipient_name},
-          phone_number = ${formData.phone_number}
-        WHERE shipment_id = ${id}
-      `;
-
-      await sql`
-        INSERT INTO tracking_logs (shipment_id, status, location, note)
-        VALUES (${id}, ${formData.status}, ${formData.origin}, 'Shipment data updated')
-      `;
-    } else {
-      const newShipment = await sql`
-        INSERT INTO shipments (
-          awb,
-          customer_id,
-          flight_id,
-          sender_name,
-          weight,
-          pieces,
-          price,
-          status,
-          shipping_date,
-          service_level,
-          description,
-          item_type,
-          vehicle_type
-        )
-        VALUES (
-          ${formData.awb},
-          1,
-          1,
-          ${formData.sender_name},
-          ${Number(formData.weight)},
-          ${Number(formData.pieces)},
-          ${Number(formData.price)},
-          ${formData.status},
-          ${formData.shipping_date},
-          ${formData.service_level},
-          ${formData.description},
-          ${formData.item_type},
-          ${formData.vehicle_type}
-        )
-        RETURNING id
-      `;
-      const newId = newShipment[0].id;
-      
-      await sql`
-        INSERT INTO shipment_details (shipment_id, origin, destination, recipient_name, phone_number)
-        VALUES (${newId}, ${formData.origin}, ${formData.destination}, ${formData.recipient_name}, ${formData.phone_number})
-      `;
-
-      await sql`
-        INSERT INTO tracking_logs (shipment_id, status, location, note)
-        VALUES (${newId}, ${formData.status}, ${formData.origin}, 'Shipment created')
-      `;
-    }
-    revalidatePath('/shipments');
+    revalidatePath("/shipments");
     return { success: true };
   } catch (error) {
-    console.error("Database Error:", error);
-    return { success: false, error: "Gagal menyimpan data ke database." };
+    console.error("Save shipment error:", error);
+    return { success: false, error: "Gagal menyimpan data shipment." };
   }
 }
 
@@ -960,7 +948,7 @@ export async function getTrackingByAwb(awb: string) {
         s.status,
         s.service_level,
         s.weight,
-        s.pieces,
+        COALESCE(s.price, 0) AS price,
         sd.origin,
         sd.destination,
         sd.recipient_name

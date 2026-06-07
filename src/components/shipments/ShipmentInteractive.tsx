@@ -14,8 +14,7 @@ type Shipment = {
   destination: string;
   item_type?: string;
   weight: number;
-  pieces: number;
-  price?: number;
+    price?: number;
   status: string;
 };
 
@@ -81,8 +80,7 @@ export default function ShipmentInteractive({
               <th className="pb-3">Destination</th>
               <th className="pb-3">Item</th>
               <th className="pb-3">Weight</th>
-              <th className="pb-3">Pieces</th>
-              <th className="pb-3">Status</th>
+                            <th className="pb-3">Status</th>
               <th className="pb-3">Action</th>
             </tr>
           </thead>
@@ -96,7 +94,7 @@ export default function ShipmentInteractive({
                 <td className="py-3">{item.destination}</td>
                 <td className="py-3">{item.item_type || "-"}</td>
                 <td className="py-3">{item.weight}</td>
-                <td className="py-3">{item.pieces}</td>
+                
                 <td
                   className={`py-3 font-medium ${
                     item.status === "In Transit" || item.status === "In-Transit"

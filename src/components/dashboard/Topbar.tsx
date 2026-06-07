@@ -1,9 +1,10 @@
-import { cookies } from "next/headers";
+import { getSession } from "@/lib/auth";
+import LogoutButton from "./LogoutButton";
 
 export default async function Topbar() {
-  const cookieStore = await cookies();
-  const user = cookieStore.get("app_user")?.value || "Guest";
-  const role = cookieStore.get("app_role")?.value || "guest";
+  const session = await getSession();
+  const user = session?.name || "Guest";
+  const role = session?.role || "guest";
 
   return (
     <div className="w-full flex justify-end items-center">
@@ -12,6 +13,7 @@ export default async function Topbar() {
           <p className="font-semibold">{user}</p>
           <p className="text-xs uppercase text-gray-400">{role}</p>
         </div>
+        <LogoutButton />
       </div>
     </div>
   );

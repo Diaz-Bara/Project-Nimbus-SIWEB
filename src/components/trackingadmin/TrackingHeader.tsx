@@ -32,7 +32,7 @@ export default async function TrackingHeader({ awb }: { awb: string }) {
       <div className="bg-blue-900 text-white p-4 rounded-xl shadow-sm flex flex-col justify-center">
         <p className="font-semibold mb-1">Express Network</p>
         <p className="text-sm text-blue-200">
-          Tracking AWB terhubung langsung ke data shipment dan tracking logs.
+          Providing real-time cargo visibility across our integrated logistics network with optimized routing and operational excellence.
         </p>
       </div>
     </div>

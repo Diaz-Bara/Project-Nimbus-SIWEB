@@ -6,10 +6,10 @@ export default async function DashboardStats() {
 
   return (
     <div className="grid md:grid-cols-4 gap-4 mt-6">
-      <StatsCard title="Active Cargo" value={stats.total.toString()} sub="Database synced" />
-      <StatsCard title="In Transit" value={stats.inTransit.toString()} sub="Live shipment status" />
-      <StatsCard title="Canceled Cargo" value={stats.canceled.toString()} sub="Canceled shipment status" />
-      <StatsCard title="On-Time Index" value="A-" sub="Reviewed from shipment data" />
+      <StatsCard title="Total Cargo" value={stats.total.toString()} sub="All registered shipments" />
+      <StatsCard title="In Transit" value={stats.inTransit.toString()} sub="Currently shipping" />
+      <StatsCard title="Delivered" value={stats.delivered.toString()} sub="Successfully arrived" icon="check" />
+      <StatsCard title="Cancelled" value={stats.canceled.toString()} sub="Cancelled shipments" />
     </div>
   );
 }

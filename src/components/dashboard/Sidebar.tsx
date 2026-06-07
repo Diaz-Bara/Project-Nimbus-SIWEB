@@ -2,8 +2,9 @@
 
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
+import { logoutAction } from "@/app/login/actions";
 import {
   ArrowLeftStartOnRectangleIcon,
   ChartBarIcon,
@@ -16,30 +17,8 @@ import {
 
 export default function Sidebar() {
   const [open, setOpen] = useState(true);
-  const [user, setUser] = useState<any>(null);
 
   const pathname = usePathname();
-  const router = useRouter();
-
-  useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem("user") || "null");
-
-    if (!storedUser) {
-      router.replace("/login");
-      return;
-    }
-
-    setUser(storedUser);
-  }, [router]);
-
-  const handleLogout = () => {
-    localStorage.removeItem("user");
-    document.cookie = "app_user=; path=/; max-age=0; SameSite=Lax";
-    document.cookie = "app_role=; path=/; max-age=0; SameSite=Lax";
-    setUser(null);
-    router.replace("/");
-    router.refresh();
-  };
 
   const baseMenu = [
     { name: "Dashboard", icon: ChartBarIcon, path: "/dashboard" },
@@ -52,8 +31,18 @@ export default function Sidebar() {
     { name: "Users", icon: UserIcon, path: "/users" },
   ];
 
+  const [role, setRole] = useState("OPERATOR");
+
+  useEffect(() => {
+    const cookies = document.cookie.split(';');
+    const roleCookie = cookies.find(c => c.trim().startsWith('nimbus_role='));
+    if (roleCookie) {
+      setRole(roleCookie.split('=')[1].trim());
+    }
+  }, []);
+
   const menu =
-    user?.role === "admin"
+    role === "ADMIN" || role === "admin" || role === "Admin" || role === "OPERATOR" || role === "operator"
       ? [...baseMenu, ...adminMenu]
       : baseMenu;
 
@@ -141,9 +130,9 @@ export default function Sidebar() {
       </button>
 
       <div className="absolute bottom-6 w-full px-3">
+        <form action={logoutAction}>
         <button
-          type="button"
-          onClick={handleLogout}
+          type="submit"
           className="w-full flex items-center justify-center gap-3
           bg-red-500/90 hover:bg-red-600 text-white py-3 rounded-2xl
           font-semibold shadow-lg backdrop-blur-md
@@ -152,6 +141,7 @@ export default function Sidebar() {
           <ArrowLeftStartOnRectangleIcon className="h-5 w-5" aria-hidden="true" />
           {open && <span>Logout</span>}
         </button>
+        </form>
       </div>
     </div>
   );
