@@ -5,9 +5,156 @@ import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import { signIn } from '@/auth';
 import { AuthError } from 'next-auth';
+import bcrypt from 'bcrypt';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 const ITEMS_PER_PAGE = 4;
+
+type UserFormData = {
+  name: string;
+  email: string;
+  empId: string;
+  role: string;
+  terminal: string;
+  status: string;
+};
+
+const userSeedData = [
+  { name: "Boas Salosa", email: "op1@nimbus.cargo", empId: "ADM-99210", role: "ADMIN", terminal: "Global Access", status: "ACTIVE", verified: true, lastLogin: "12 minutes" },
+  { name: "Jay Idzes", email: "op2@nimbus.cargo", empId: "ADM-88432", role: "ADMIN", terminal: "CGK-Main", status: "ACTIVE", verified: true, lastLogin: "2 hours" },
+  { name: "Bambang Pamungkas", email: "op3@nimbus.cargo", empId: "OPR-77001", role: "OPERATOR", terminal: "DPS-Terminal", status: "INACTIVE", verified: false, lastLogin: "3 days" },
+  { name: "Justin Hubner", email: "op4@nimbus.cargo", empId: "OPR-88544", role: "OPERATOR", terminal: "KNO-Gateway", status: "ACTIVE", verified: true, lastLogin: "5 minutes" },
+  { name: "Ayu Kartika", email: "op5@nimbus.cargo", empId: "OPR-92184", role: "OPERATOR", terminal: "SUB-Terminal", status: "ACTIVE", verified: true, lastLogin: "28 minutes" },
+  { name: "Raka Pratama", email: "op6@nimbus.cargo", empId: "ADM-11872", role: "ADMIN", terminal: "Global Access", status: "ACTIVE", verified: true, lastLogin: "47 minutes" },
+  { name: "Maya Santoso", email: "op7@nimbus.cargo", empId: "OPR-45821", role: "OPERATOR", terminal: "CGK-Cargo", status: "ACTIVE", verified: true, lastLogin: "1 hour" },
+  { name: "Fajar Akbar", email: "op8@nimbus.cargo", empId: "OPR-61339", role: "OPERATOR", terminal: "BDO-Gateway", status: "ACTIVE", verified: true, lastLogin: "4 hours" },
+  { name: "Nadia Putri", email: "op9@nimbus.cargo", empId: "OPR-50218", role: "OPERATOR", terminal: "MES-Station", status: "INACTIVE", verified: false, lastLogin: "5 days" },
+  { name: "Dimas Surya", email: "op10@nimbus.cargo", empId: "ADM-34980", role: "ADMIN", terminal: "Global Access", status: "ACTIVE", verified: true, lastLogin: "6 hours" },
+  { name: "Lina Kartika", email: "op11@nimbus.cargo", empId: "OPR-73042", role: "OPERATOR", terminal: "CGK-Main", status: "ACTIVE", verified: true, lastLogin: "8 hours" },
+  { name: "Seno Wibowo", email: "op12@nimbus.cargo", empId: "OPR-64127", role: "OPERATOR", terminal: "DPS-Terminal", status: "ACTIVE", verified: true, lastLogin: "9 hours" },
+  { name: "Clara Wijaya", email: "op13@nimbus.cargo", empId: "ADM-27091", role: "ADMIN", terminal: "Global Access", status: "ACTIVE", verified: true, lastLogin: "11 hours" },
+  { name: "Yusuf Hadi", email: "op14@nimbus.cargo", empId: "OPR-87420", role: "OPERATOR", terminal: "KNO-Gateway", status: "ACTIVE", verified: true, lastLogin: "1 day" },
+  { name: "Rani Amelia", email: "op15@nimbus.cargo", empId: "OPR-39514", role: "OPERATOR", terminal: "SUB-Terminal", status: "ACTIVE", verified: false, lastLogin: "1 day" },
+  { name: "Kevin Sanjaya", email: "op16@nimbus.cargo", empId: "OPR-55418", role: "OPERATOR", terminal: "CGK-Cargo", status: "INACTIVE", verified: false, lastLogin: "8 days" },
+  { name: "Siti Rahma", email: "op17@nimbus.cargo", empId: "OPR-20773", role: "OPERATOR", terminal: "BDO-Gateway", status: "ACTIVE", verified: true, lastLogin: "2 days" },
+  { name: "Andi Wijaya", email: "op18@nimbus.cargo", empId: "ADM-77845", role: "ADMIN", terminal: "Global Access", status: "ACTIVE", verified: true, lastLogin: "2 days" },
+  { name: "Dewi Lestari", email: "op19@nimbus.cargo", empId: "OPR-69034", role: "OPERATOR", terminal: "MES-Station", status: "ACTIVE", verified: true, lastLogin: "3 days" },
+  { name: "Hendra Gunawan", email: "op20@nimbus.cargo", empId: "OPR-81163", role: "OPERATOR", terminal: "CGK-Main", status: "ACTIVE", verified: true, lastLogin: "4 days" },
+];
+
+function getInitials(name: string) {
+  return name
+    .split(" ")
+    .map((part) => part[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+}
+
+function formatLastLogin(value: Date | string | null) {
+  if (!value) return "Never";
+
+  const date = value instanceof Date ? value : new Date(value);
+  const diffSeconds = Math.max(0, Math.floor((Date.now() - date.getTime()) / 1000));
+  const diffMinutes = Math.floor(diffSeconds / 60);
+  const diffHours = Math.floor(diffMinutes / 60);
+  const diffDays = Math.floor(diffHours / 24);
+
+  if (diffMinutes < 1) return "Just now";
+  if (diffMinutes < 60) return `${diffMinutes} mins ago`;
+  if (diffHours < 24) return `${diffHours} hours ago`;
+  return `${diffDays} days ago`;
+}
+
+function mapUserRow(row: any) {
+  return {
+    id: Number(row.id),
+    initials: getInitials(row.name || ""),
+    name: row.name || "",
+    email: row.email || "",
+    empId: row.emp_id || "",
+    role: (row.role || "OPERATOR").toUpperCase(),
+    terminal: row.terminal || "General Access",
+    lastLogin: formatLastLogin(row.last_login),
+    status: (row.status || "ACTIVE").toUpperCase(),
+  };
+}
+
+async function ensureUserSchema() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS users (
+      id SERIAL PRIMARY KEY,
+      name VARCHAR(255),
+      email TEXT UNIQUE,
+      password TEXT,
+      role TEXT
+    )
+  `;
+
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS emp_id TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS terminal TEXT`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS status TEXT DEFAULT 'ACTIVE'`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS verified BOOLEAN DEFAULT TRUE`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS last_login TIMESTAMP`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()`;
+  await sql`ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()`;
+
+  await sql`UPDATE users SET role = UPPER(role) WHERE role IS NOT NULL`;
+  await sql`UPDATE users SET status = UPPER(status) WHERE status IS NOT NULL`;
+
+  const seedState = await sql`
+    SELECT
+      COUNT(*)::int AS total,
+      COUNT(*) FILTER (WHERE emp_id IS NOT NULL)::int AS with_emp_id
+    FROM users
+  `;
+
+  if (
+    Number(seedState[0]?.total || 0) >= userSeedData.length &&
+    Number(seedState[0]?.with_emp_id || 0) >= userSeedData.length
+  ) {
+    return;
+  }
+
+  const defaultHash = await bcrypt.hash("password123", 10);
+
+  for (const user of userSeedData) {
+    await sql`
+      INSERT INTO users (
+        name,
+        email,
+        password,
+        role,
+        emp_id,
+        terminal,
+        status,
+        verified,
+        last_login
+      )
+      VALUES (
+        ${user.name},
+        ${user.email},
+        ${defaultHash},
+        ${user.role},
+        ${user.empId},
+        ${user.terminal},
+        ${user.status},
+        ${user.verified},
+        NOW() - (${user.lastLogin})::interval
+      )
+      ON CONFLICT (email) DO UPDATE SET
+        name = EXCLUDED.name,
+        password = COALESCE(users.password, EXCLUDED.password),
+        role = EXCLUDED.role,
+        emp_id = EXCLUDED.emp_id,
+        terminal = EXCLUDED.terminal,
+        status = EXCLUDED.status,
+        verified = EXCLUDED.verified,
+        last_login = COALESCE(users.last_login, EXCLUDED.last_login),
+        updated_at = NOW()
+    `;
+  }
+}
 
 const flightSeedData = [
   {
@@ -214,6 +361,193 @@ export async function authenticate(prevState: string | undefined, formData: Form
       }
     }
     throw error;
+  }
+}
+
+export async function fetchUsers(query: string, currentPage: number) {
+  await ensureUserSchema();
+  const offset = (currentPage - 1) * ITEMS_PER_PAGE;
+
+  try {
+    const data = await sql`
+      SELECT id, name, email, emp_id, role, terminal, last_login, status
+      FROM users
+      WHERE
+        COALESCE(name, '') ILIKE ${`%${query}%`} OR
+        COALESCE(email, '') ILIKE ${`%${query}%`} OR
+        COALESCE(emp_id, '') ILIKE ${`%${query}%`} OR
+        COALESCE(role, '') ILIKE ${`%${query}%`} OR
+        COALESCE(terminal, '') ILIKE ${`%${query}%`} OR
+        COALESCE(status, '') ILIKE ${`%${query}%`}
+      ORDER BY id ASC
+      LIMIT ${ITEMS_PER_PAGE} OFFSET ${offset}
+    `;
+
+    return data.map(mapUserRow);
+  } catch (error) {
+    console.error("Fetch users error:", error);
+    return [];
+  }
+}
+
+export async function fetchUsersCount(query: string) {
+  await ensureUserSchema();
+
+  try {
+    const count = await sql`
+      SELECT COUNT(*)
+      FROM users
+      WHERE
+        COALESCE(name, '') ILIKE ${`%${query}%`} OR
+        COALESCE(email, '') ILIKE ${`%${query}%`} OR
+        COALESCE(emp_id, '') ILIKE ${`%${query}%`} OR
+        COALESCE(role, '') ILIKE ${`%${query}%`} OR
+        COALESCE(terminal, '') ILIKE ${`%${query}%`} OR
+        COALESCE(status, '') ILIKE ${`%${query}%`}
+    `;
+
+    return Number(count[0]?.count || 0);
+  } catch (error) {
+    console.error("Fetch users count error:", error);
+    return 0;
+  }
+}
+
+export async function fetchUsersPages(query: string) {
+  const totalUsers = await fetchUsersCount(query);
+  return Math.ceil(totalUsers / ITEMS_PER_PAGE);
+}
+
+export async function fetchUserStats() {
+  await ensureUserSchema();
+
+  try {
+    const data = await sql`
+      SELECT
+        COUNT(*)::int AS total,
+        COUNT(*) FILTER (WHERE status ILIKE 'ACTIVE')::int AS active,
+        COUNT(*) FILTER (WHERE status ILIKE 'ACTIVE' AND verified IS TRUE)::int AS verified_active
+      FROM users
+    `;
+
+    const total = Number(data[0]?.total || 0);
+    const active = Number(data[0]?.active || 0);
+    const verifiedActive = Number(data[0]?.verified_active || 0);
+
+    return {
+      total,
+      active,
+      verifiedActive,
+      verifiedPercent: active > 0 ? Math.round((verifiedActive / active) * 1000) / 10 : 0,
+    };
+  } catch (error) {
+    console.error("Fetch user stats error:", error);
+    return { total: 0, active: 0, verifiedActive: 0, verifiedPercent: 0 };
+  }
+}
+
+export async function fetchRecentAccessLogs(limit = 3) {
+  await ensureUserSchema();
+
+  try {
+    const data = await sql`
+      SELECT name, terminal, role, last_login, status
+      FROM users
+      WHERE last_login IS NOT NULL
+      ORDER BY last_login DESC
+      LIMIT ${limit}
+    `;
+
+    return data.map((item) => ({
+      name: item.name || "Unknown employee",
+      terminal: item.terminal || "General Access",
+      role: (item.role || "OPERATOR").toUpperCase(),
+      status: (item.status || "ACTIVE").toUpperCase(),
+      lastLogin: formatLastLogin(item.last_login),
+    }));
+  } catch (error) {
+    console.error("Fetch recent access logs error:", error);
+    return [];
+  }
+}
+
+export async function saveUserAction(userData: UserFormData, id?: number) {
+  await ensureUserSchema();
+
+  const UserSchema = z.object({
+    name: z.string().min(1, "Nama wajib diisi."),
+    email: z.string().email("Email tidak valid."),
+    empId: z.string().min(1, "Employee ID wajib diisi."),
+    role: z.enum(["ADMIN", "OPERATOR"]),
+    terminal: z.string().min(1, "Terminal wajib diisi."),
+    status: z.enum(["ACTIVE", "INACTIVE"]),
+  });
+
+  const parsed = UserSchema.safeParse({
+    ...userData,
+    empId: userData.empId?.toUpperCase(),
+    role: userData.role?.toUpperCase(),
+    status: userData.status?.toUpperCase(),
+  });
+
+  if (!parsed.success) {
+    return {
+      success: false,
+      error: "Form user belum lengkap atau formatnya tidak sesuai.",
+    };
+  }
+
+  const data = parsed.data;
+
+  try {
+    const result = id
+      ? await sql`
+          UPDATE users
+          SET
+            name = ${data.name},
+            email = ${data.email.toLowerCase()},
+            emp_id = ${data.empId},
+            role = ${data.role},
+            terminal = ${data.terminal},
+            status = ${data.status},
+            updated_at = NOW()
+          WHERE id = ${id}
+          RETURNING id, name, email, emp_id, role, terminal, last_login, status
+        `
+      : await sql`
+          INSERT INTO users (
+            name,
+            email,
+            password,
+            emp_id,
+            role,
+            terminal,
+            status,
+            verified,
+            last_login
+          )
+          VALUES (
+            ${data.name},
+            ${data.email.toLowerCase()},
+            ${await bcrypt.hash("password123", 10)},
+            ${data.empId},
+            ${data.role},
+            ${data.terminal},
+            ${data.status},
+            TRUE,
+            NOW()
+          )
+          RETURNING id, name, email, emp_id, role, terminal, last_login, status
+        `;
+
+    revalidatePath("/users");
+    return { success: true, user: mapUserRow(result[0]) };
+  } catch (error) {
+    console.error("Save user error:", error);
+    return {
+      success: false,
+      error: "Gagal menyimpan user ke database. Periksa email agar tidak duplikat.",
+    };
   }
 }
 

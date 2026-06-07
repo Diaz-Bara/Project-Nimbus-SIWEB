@@ -10,7 +10,9 @@ export default function LoginPage() {
   const emailRef = useRef<HTMLInputElement>(null);
   const passwordRef = useRef<HTMLInputElement>(null);
 
-  const handleLogin = () => {
+  const handleLogin = (e?: React.FormEvent) => {
+    e?.preventDefault();
+
     const email = emailRef.current?.value.trim().toLowerCase();
     const password = passwordRef.current?.value.trim();
 
@@ -67,39 +69,41 @@ export default function LoginPage() {
           Enter your credentials to access the system
         </p>
 
-        {/* INPUT (TIDAK DIUBAH UI) */}
-        <input
-          ref={emailRef}
-          type="text"
-          placeholder="Email or Username"
-          className="w-full border rounded-lg px-3 py-2 mb-3 text-sm"
-        />
+        <form onSubmit={handleLogin}>
+          {/* INPUT (TIDAK DIUBAH UI) */}
+          <input
+            ref={emailRef}
+            type="text"
+            placeholder="Email or Username"
+            className="w-full border rounded-lg px-3 py-2 mb-3 text-sm"
+          />
 
-        <input
-          ref={passwordRef}
-          type="password"
-          placeholder="Password"
-          className="w-full border rounded-lg px-3 py-2 mb-3 text-sm"
-        />
+          <input
+            ref={passwordRef}
+            type="password"
+            placeholder="Password"
+            className="w-full border rounded-lg px-3 py-2 mb-3 text-sm"
+          />
 
-        {/* OPTIONS */}
-        <div className="flex justify-between text-xs mb-4">
-          <label className="flex items-center gap-1">
-            <input type="checkbox" />
-            Remember me
-          </label>
-          <span className="text-blue-500 cursor-pointer">
-            Forgot password?
-          </span>
-        </div>
+          {/* OPTIONS */}
+          <div className="flex justify-between text-xs mb-4">
+            <label className="flex items-center gap-1">
+              <input type="checkbox" />
+              Remember me
+            </label>
+            <span className="text-blue-500 cursor-pointer">
+              Forgot password?
+            </span>
+          </div>
 
-        {/* BUTTON */}
-        <button
-          onClick={handleLogin}
-          className="w-full bg-blue-600 text-white py-2 rounded-lg mb-3 hover:bg-blue-700 transition"
-        >
-          LOGIN
-        </button>
+          {/* BUTTON */}
+          <button
+            type="submit"
+            className="w-full bg-blue-600 text-white py-2 rounded-lg mb-3 hover:bg-blue-700 transition"
+          >
+            LOGIN
+          </button>
+        </form>
 
       </div>
     </div>

@@ -41,10 +41,11 @@ export default function Navbar() {
         ))}
       </div>
 
-      <Link href="/login">
-         <button className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition">
-          Login
-        </button>
+      <Link
+        href="/login"
+        className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 transition focus:outline-none focus:ring-2 focus:ring-orange-400"
+      >
+        Login
       </Link>
     </nav>
   );

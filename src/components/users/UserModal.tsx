@@ -16,11 +16,20 @@ type User = {
 type UserModalProps = {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (user: User) => void;
+  onSave: (user: User) => Promise<void>;
   userData?: User | null;
+  isSaving?: boolean;
+  errorMessage?: string | null;
 };
 
-export default function UserModal({ isOpen, onClose, onSave, userData }: UserModalProps) {
+export default function UserModal({
+  isOpen,
+  onClose,
+  onSave,
+  userData,
+  isSaving = false,
+  errorMessage,
+}: UserModalProps) {
   const [form, setForm] = useState<User>({
     name: "",
     email: "",
@@ -47,25 +56,36 @@ export default function UserModal({ isOpen, onClose, onSave, userData }: UserMod
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    onSave(form);
+    await onSave(form);
   };
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm">
       <div className="bg-white rounded-xl shadow-xl w-full max-w-lg overflow-hidden animate-in fade-in zoom-in duration-200">
-        
         <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center bg-gray-50/50">
           <h2 className="text-xl font-semibold text-gray-800">
             {userData ? "Update User" : "New User"}
           </h2>
-          <button type="button" onClick={onClose} className="text-gray-400 hover:text-gray-600 transition">
-            ✕
+          <button
+            type="button"
+            onClick={onClose}
+            disabled={isSaving}
+            className="text-gray-400 hover:text-gray-600 transition disabled:opacity-50"
+            aria-label="Close user modal"
+          >
+            x
           </button>
         </div>
 
         <div className="p-6">
+          {errorMessage && (
+            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
+              {errorMessage}
+            </div>
+          )}
+
           <form id="user-form" onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Name</label>
@@ -77,7 +97,7 @@ export default function UserModal({ isOpen, onClose, onSave, userData }: UserMod
                 onChange={(e) => setForm({ ...form, name: e.target.value })}
               />
             </div>
-            
+
             <div>
               <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Email</label>
               <input
@@ -98,7 +118,7 @@ export default function UserModal({ isOpen, onClose, onSave, userData }: UserMod
                   placeholder="e.g. ADM-99210"
                   className="w-full border border-gray-200 p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition text-sm uppercase"
                   value={form.empId}
-                  onChange={(e) => setForm({ ...form, empId: e.target.value })}
+                  onChange={(e) => setForm({ ...form, empId: e.target.value.toUpperCase() })}
                 />
               </div>
 
@@ -148,19 +168,20 @@ export default function UserModal({ isOpen, onClose, onSave, userData }: UserMod
           <button
             type="button"
             onClick={onClose}
-            className="px-5 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors"
+            disabled={isSaving}
+            className="px-5 py-2 border border-gray-200 rounded-lg text-sm font-medium text-gray-600 hover:bg-gray-100 transition-colors disabled:opacity-70"
           >
             Cancel
           </button>
           <button
             type="submit"
             form="user-form"
-            className="px-6 py-2 bg-[#1a4bba] hover:bg-blue-800 text-white rounded-lg text-sm font-medium transition-colors shadow-sm"
+            disabled={isSaving}
+            className="px-6 py-2 bg-[#1a4bba] hover:bg-blue-800 text-white rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
           >
-            Save
+            {isSaving ? "Saving..." : "Save"}
           </button>
         </div>
-
       </div>
     </div>
   );

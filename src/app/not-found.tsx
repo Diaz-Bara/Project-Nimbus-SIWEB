@@ -25,6 +25,7 @@ export default function NotFound() {
         </p>
         
         <button
+          type="button"
           onClick={() => router.back()}
           className="inline-block bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-lg text-sm font-medium transition-colors w-full"
         >

@@ -18,19 +18,48 @@ export async function GET() {
           name VARCHAR(255),
           email TEXT UNIQUE,
           password TEXT,
-          role TEXT
+          role TEXT,
+          emp_id TEXT,
+          terminal TEXT,
+          status TEXT DEFAULT 'ACTIVE',
+          verified BOOLEAN DEFAULT TRUE,
+          last_login TIMESTAMP,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
         );
       `;
-      const usersData = Array.from({ length: 10 }, (_, i) => ({
-        name: `Operator ${i + 1}`,
-        email: `op${i + 1}@nimbus.cargo`,
+      const usersData = [
+        { name: "Boas Salosa", email: "op1@nimbus.cargo", empId: "ADM-99210", role: "ADMIN", terminal: "Global Access", status: "ACTIVE", verified: true, lastLogin: "12 minutes" },
+        { name: "Jay Idzes", email: "op2@nimbus.cargo", empId: "ADM-88432", role: "ADMIN", terminal: "CGK-Main", status: "ACTIVE", verified: true, lastLogin: "2 hours" },
+        { name: "Bambang Pamungkas", email: "op3@nimbus.cargo", empId: "OPR-77001", role: "OPERATOR", terminal: "DPS-Terminal", status: "INACTIVE", verified: false, lastLogin: "3 days" },
+        { name: "Justin Hubner", email: "op4@nimbus.cargo", empId: "OPR-88544", role: "OPERATOR", terminal: "KNO-Gateway", status: "ACTIVE", verified: true, lastLogin: "5 minutes" },
+        { name: "Ayu Kartika", email: "op5@nimbus.cargo", empId: "OPR-92184", role: "OPERATOR", terminal: "SUB-Terminal", status: "ACTIVE", verified: true, lastLogin: "28 minutes" },
+        { name: "Raka Pratama", email: "op6@nimbus.cargo", empId: "ADM-11872", role: "ADMIN", terminal: "Global Access", status: "ACTIVE", verified: true, lastLogin: "47 minutes" },
+        { name: "Maya Santoso", email: "op7@nimbus.cargo", empId: "OPR-45821", role: "OPERATOR", terminal: "CGK-Cargo", status: "ACTIVE", verified: true, lastLogin: "1 hour" },
+        { name: "Fajar Akbar", email: "op8@nimbus.cargo", empId: "OPR-61339", role: "OPERATOR", terminal: "BDO-Gateway", status: "ACTIVE", verified: true, lastLogin: "4 hours" },
+        { name: "Nadia Putri", email: "op9@nimbus.cargo", empId: "OPR-50218", role: "OPERATOR", terminal: "MES-Station", status: "INACTIVE", verified: false, lastLogin: "5 days" },
+        { name: "Dimas Surya", email: "op10@nimbus.cargo", empId: "ADM-34980", role: "ADMIN", terminal: "Global Access", status: "ACTIVE", verified: true, lastLogin: "6 hours" },
+        { name: "Lina Kartika", email: "op11@nimbus.cargo", empId: "OPR-73042", role: "OPERATOR", terminal: "CGK-Main", status: "ACTIVE", verified: true, lastLogin: "8 hours" },
+        { name: "Seno Wibowo", email: "op12@nimbus.cargo", empId: "OPR-64127", role: "OPERATOR", terminal: "DPS-Terminal", status: "ACTIVE", verified: true, lastLogin: "9 hours" },
+        { name: "Clara Wijaya", email: "op13@nimbus.cargo", empId: "ADM-27091", role: "ADMIN", terminal: "Global Access", status: "ACTIVE", verified: true, lastLogin: "11 hours" },
+        { name: "Yusuf Hadi", email: "op14@nimbus.cargo", empId: "OPR-87420", role: "OPERATOR", terminal: "KNO-Gateway", status: "ACTIVE", verified: true, lastLogin: "1 day" },
+        { name: "Rani Amelia", email: "op15@nimbus.cargo", empId: "OPR-39514", role: "OPERATOR", terminal: "SUB-Terminal", status: "ACTIVE", verified: false, lastLogin: "1 day" },
+        { name: "Kevin Sanjaya", email: "op16@nimbus.cargo", empId: "OPR-55418", role: "OPERATOR", terminal: "CGK-Cargo", status: "INACTIVE", verified: false, lastLogin: "8 days" },
+        { name: "Siti Rahma", email: "op17@nimbus.cargo", empId: "OPR-20773", role: "OPERATOR", terminal: "BDO-Gateway", status: "ACTIVE", verified: true, lastLogin: "2 days" },
+        { name: "Andi Wijaya", email: "op18@nimbus.cargo", empId: "ADM-77845", role: "ADMIN", terminal: "Global Access", status: "ACTIVE", verified: true, lastLogin: "2 days" },
+        { name: "Dewi Lestari", email: "op19@nimbus.cargo", empId: "OPR-69034", role: "OPERATOR", terminal: "MES-Station", status: "ACTIVE", verified: true, lastLogin: "3 days" },
+        { name: "Hendra Gunawan", email: "op20@nimbus.cargo", empId: "OPR-81163", role: "OPERATOR", terminal: "CGK-Main", status: "ACTIVE", verified: true, lastLogin: "4 days" },
+      ].map((user) => ({
+        ...user,
         password: "password123",
-        role: i === 0 ? "Admin" : "Operator"
       }));
 
       for (const u of usersData) {
         const hash = await bcrypt.hash(u.password, 10);
-        await sql`INSERT INTO users (name, email, password, role) VALUES (${u.name}, ${u.email}, ${hash}, ${u.role})`;
+        await sql`
+          INSERT INTO users (name, email, password, role, emp_id, terminal, status, verified, last_login)
+          VALUES (${u.name}, ${u.email}, ${hash}, ${u.role}, ${u.empId}, ${u.terminal}, ${u.status}, ${u.verified}, NOW() - (${u.lastLogin})::interval)
+        `;
       }
 
       // ================= 2. MASTER: CUSTOMERS =================

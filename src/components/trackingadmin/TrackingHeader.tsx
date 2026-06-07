@@ -15,7 +15,7 @@ export default async function TrackingHeader({ awb }: { awb: string }) {
             placeholder="Masukkan nomor AWB"
             className="flex-1 border border-gray-200 px-4 py-2 rounded-lg text-sm"
           />
-          <button className="bg-blue-700 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-800 transition">
+          <button type="submit" className="bg-blue-700 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-800 transition">
             Track Shipment
           </button>
         </form>

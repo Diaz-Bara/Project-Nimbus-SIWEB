@@ -2,6 +2,8 @@
 
 import { useState, useEffect, ReactNode } from "react";
 import { PencilIcon } from "@heroicons/react/24/solid";
+import { useRouter } from "next/navigation";
+import { saveUserAction } from "@/lib/actions";
 import UserModal from "./UserModal";
 
 type User = {
@@ -18,16 +20,21 @@ type User = {
 
 export default function UserInteractive({
   initialData,
+  summaryText,
   searchComponent,
   paginationComponent,
 }: {
   initialData: User[];
+  summaryText: string;
   searchComponent: ReactNode;
   paginationComponent: ReactNode;
 }) {
+  const router = useRouter();
   const [data, setData] = useState<User[]>(initialData);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
   // Perbarui data lokal jika prop initialData berubah (karena pencarian server)
   useEffect(() => {
@@ -36,19 +43,32 @@ export default function UserInteractive({
 
   const handleEdit = (user: User) => {
     setSelectedUser(user);
+    setSaveError(null);
     setIsModalOpen(true);
   };
 
-  const handleSave = (userData: any) => {
-    if (selectedUser) {
-      setData(data.map((u) => (u.id === selectedUser.id ? { ...u, ...userData } : u)));
-    } else {
-      // Bikin inisial otomatis
-      const inits = userData.name.split(" ").map((n: string) => n[0]).join("").substring(0, 2).toUpperCase();
-      setData([{ ...userData, id: Date.now(), initials: inits, lastLogin: "Just now" }, ...data]);
+  const handleSave = async (userData: any) => {
+    setIsSaving(true);
+    setSaveError(null);
+
+    const result = await saveUserAction(userData, selectedUser?.id);
+
+    if (!result.success || !result.user) {
+      setSaveError(result.error || "Gagal menyimpan user.");
+      setIsSaving(false);
+      return;
     }
+
+    if (selectedUser) {
+      setData(data.map((u) => (u.id === selectedUser.id ? result.user : u)));
+    } else {
+      setData([result.user, ...data]);
+    }
+
+    router.refresh();
     setIsModalOpen(false);
     setSelectedUser(null);
+    setIsSaving(false);
   };
 
   return (
@@ -63,8 +83,10 @@ export default function UserInteractive({
             {searchComponent}
           </div>
           <button
+            type="button"
             onClick={() => {
               setSelectedUser(null);
+              setSaveError(null);
               setIsModalOpen(true);
             }}
             className="bg-[#1a4bba] text-white px-4 py-[9px] rounded-md text-sm flex-shrink-0 hover:bg-blue-800 transition"
@@ -117,6 +139,7 @@ export default function UserInteractive({
                 </td>
                 <td className="text-center">
                   <button
+                    type="button"
                     onClick={() => handleEdit(u)}
                     className="text-orange-500 hover:text-orange-600 transition p-1"
                     title="Edit User"
@@ -132,7 +155,7 @@ export default function UserInteractive({
 
       {/* FOOTER: Pagination */}
       <div className="flex justify-between items-center mt-6 pt-4 border-t border-gray-100 text-xs text-gray-400">
-        <p>Showing users</p>
+        <p>{summaryText}</p>
         <div className="scale-90">
           {paginationComponent}
         </div>
@@ -147,6 +170,8 @@ export default function UserInteractive({
         }}
         onSave={handleSave}
         userData={selectedUser}
+        isSaving={isSaving}
+        errorMessage={saveError}
       />
     </div>
   );

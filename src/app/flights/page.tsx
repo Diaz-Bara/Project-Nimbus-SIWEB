@@ -8,6 +8,7 @@ import FlightsListSkeleton from "@/components/flights/FlightSkeleton";
 import { Suspense } from "react";
 import FlightMap from "@/components/flights/FlightMap";
 import { fetchFlightsPages } from "@/lib/actions";
+import Link from "next/link";
 
 export default async function FlightsPage(props: {
   searchParams?: Promise<{
@@ -44,9 +45,13 @@ export default async function FlightsPage(props: {
                 <SearchWrapper placeholder="Cari kode penerbangan atau destinasi (contoh: Tokyo atau PT-882)..." />
               </Suspense>
             </div>
-            <div className="bg-white p-3 rounded-lg text-sm shadow-sm flex items-center justify-center font-bold">
+            <Link
+              href="/flights?query=ACTIVE&page=1"
+              role="button"
+              className="bg-white p-3 rounded-lg text-sm shadow-sm flex items-center justify-center font-bold hover:bg-blue-50 hover:text-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
               Quick Filters
-            </div>
+            </Link>
           </div>
 
           {/* LIST DENGAN SUSPENSE (SKELETON LOADING) */}

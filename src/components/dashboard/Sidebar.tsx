@@ -124,6 +124,7 @@ export default function Sidebar() {
       </ul>
 
       <button
+        type="button"
         onClick={() => setOpen(!open)}
         className="absolute top-1/2 -right-3 -translate-y-1/2
         bg-white/80 backdrop-blur-md border shadow-md
@@ -141,6 +142,7 @@ export default function Sidebar() {
 
       <div className="absolute bottom-6 w-full px-3">
         <button
+          type="button"
           onClick={handleLogout}
           className="w-full flex items-center justify-center gap-3
           bg-red-500/90 hover:bg-red-600 text-white py-3 rounded-2xl

@@ -1,19 +1,18 @@
 // src/components/users/UserMetrics.tsx
+import { fetchUserStats } from "@/lib/actions";
 
 export default async function UserMetrics() {
-  // Simulasi waktu memuat data selama 1.5 detik
-  await new Promise((resolve) => setTimeout(resolve, 1500));
+  const stats = await fetchUserStats();
 
   return (
     <div className="grid md:grid-cols-3 gap-4 mb-6">
       <div className="bg-white p-5 rounded-xl shadow-sm md:col-span-2">
         <p className="text-xs text-gray-400 mb-1">SECURITY COMPLIANCE</p>
         <h2 className="text-xl font-bold text-blue-900">
-          98.4% of Active Operators verified
+          {stats.verifiedPercent}% of Active employee verified
         </h2>
         <div className="flex gap-2 mt-3 text-xs">
-          <span className="bg-gray-100 px-3 py-1 rounded">42 ACTIVE USERS</span>
-          <span className="bg-gray-100 px-3 py-1 rounded">3 PENDING AUDITS</span>
+          <span className="bg-gray-100 px-3 py-1 rounded">{stats.active} ACTIVE USERS</span>
         </div>
       </div>
       

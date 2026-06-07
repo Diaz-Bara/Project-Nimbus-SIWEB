@@ -1,15 +1,22 @@
+import { fetchRecentAccessLogs } from "@/lib/actions";
+
 export default async function UserBottomCards() {
-  // Efek delay 1.5 detik
-  await new Promise((resolve) => setTimeout(resolve, 1500));
+  const logs = await fetchRecentAccessLogs(3);
 
   return (
     <div className="grid md:grid-cols-2 gap-4 mt-6">
       <div className="bg-white p-4 rounded-xl shadow-sm">
         <p className="font-semibold mb-2">Recent Access Logs</p>
         <ul className="text-sm text-gray-500 space-y-1">
-          <li>Julian Sebastian — Logged in via Terminal A</li>
-          <li>Anisa Rahmawati — Updated Shipment</li>
-          <li>Maya Tan — Signed out</li>
+          {logs.length === 0 ? (
+            <li>No access logs available.</li>
+          ) : (
+            logs.map((log) => (
+              <li key={`${log.name}-${log.lastLogin}`}>
+                {log.name} - Logged in via {log.terminal} ({log.lastLogin})
+              </li>
+            ))
+          )}
         </ul>
       </div>
       <div className="bg-white p-4 rounded-xl shadow-sm">
