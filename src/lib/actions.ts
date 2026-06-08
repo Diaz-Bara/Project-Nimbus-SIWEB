@@ -697,6 +697,63 @@ export async function fetchRecentShipments(limit = 5) {
   }
 }
 
+export async function fetchFlightNetworkCities() {
+  await ensureFlightSchema();
+
+  try {
+    const rows = await sql`
+      SELECT
+        code,
+        MAX(city) AS city
+      FROM (
+        SELECT origin_code AS code, origin_city AS city
+        FROM flights
+        WHERE origin_code IS NOT NULL AND origin_city IS NOT NULL
+        UNION ALL
+        SELECT destination_code AS code, destination_city AS city
+        FROM flights
+        WHERE destination_code IS NOT NULL AND destination_city IS NOT NULL
+      ) airports
+      GROUP BY code
+      ORDER BY city ASC, code ASC
+    `;
+
+    return rows.map((row) => ({
+      code: String(row.code),
+      city: String(row.city),
+    }));
+  } catch (error) {
+    console.error("Fetch flight network cities error:", error);
+    return [];
+  }
+}
+
+export async function fetchFlightsForNetworkMap() {
+  await ensureFlightSchema();
+
+  try {
+    const data = await sql`
+      SELECT
+        id,
+        code,
+        COALESCE(status, 'SCHEDULED') AS status,
+        origin_code,
+        origin_city,
+        destination_code,
+        destination_city
+      FROM flights
+      WHERE origin_code IS NOT NULL
+        AND destination_code IS NOT NULL
+      ORDER BY id ASC
+    `;
+
+    return data as any[];
+  } catch (error) {
+    console.error("Fetch flights for network map error:", error);
+    return [];
+  }
+}
+
 export async function fetchFlights(query: string, currentPage: number) {
   await ensureFlightSchema();
   const offset = (currentPage - 1) * ITEMS_PER_PAGE;
