@@ -1,13 +1,15 @@
 "use client";
 
 import Image from "next/image";
+import Link from "next/link";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import { loginAction } from "@/app/login/actions";
 
 export default function LoginPage() {
   const router = useRouter();
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
@@ -19,8 +21,8 @@ export default function LoginPage() {
 
     try {
       const formData = new FormData();
-      formData.append("email", email.trim().toLowerCase());
-      formData.append("password", password.trim());
+      formData.append("email", username.trim());
+      formData.append("password", password);
 
       const result = await loginAction(undefined, formData);
 
@@ -38,6 +40,14 @@ export default function LoginPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 relative">
+      <Link
+        href="/"
+        className="absolute top-6 left-6 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors"
+      >
+        <ArrowLeftIcon className="w-4 h-4" />
+        Back
+      </Link>
+
       <div className="bg-white w-full max-w-sm p-6 rounded-2xl shadow-lg">
         <div className="flex flex-col items-center mb-4">
           <Image src="/logo.png" alt="logo" width={60} height={60} />
@@ -59,11 +69,11 @@ export default function LoginPage() {
 
         <form onSubmit={handleLogin}>
           <input
-            type="email"
-            placeholder="Email"
+            type="text"
+            placeholder="admin or operator 1"
             className="w-full border rounded-lg px-3 py-2 mb-3 text-sm"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
             required
           />
 

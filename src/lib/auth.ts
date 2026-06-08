@@ -2,6 +2,7 @@ import jwt from "jsonwebtoken";
 import { cookies } from "next/headers";
 import bcrypt from "bcryptjs";
 import postgres from "postgres";
+import { resolveAccountEmail } from "@/lib/user-credentials";
 
 const JWT_SECRET = process.env.AUTH_SECRET || "nimbus-cargo-secret-key-2026";
 const COOKIE_NAME = "nimbus_session";
@@ -15,11 +16,12 @@ export interface SessionUser {
   terminal: string;
 }
 
-export async function loginUser(email: string, password: string): Promise<SessionUser | null> {
+export async function loginUser(username: string, password: string): Promise<SessionUser | null> {
   const sql = postgres(process.env.POSTGRES_URL!, { ssl: "require" });
+  const email = resolveAccountEmail(username);
   
   try {
-    const users = await sql`SELECT * FROM users WHERE email = ${email}`;
+    const users = await sql`SELECT * FROM users WHERE LOWER(email) = ${email.toLowerCase()}`;
     if (!users[0]) return null;
 
     const user = users[0];
