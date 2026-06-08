@@ -936,17 +936,28 @@ export async function getTrackingByAwb(awb: string) {
         s.service_level,
         s.weight,
         COALESCE(s.price, 0) AS price,
+        s.shipping_date,
+        s.description,
+        COALESCE(s.item_type, '') AS item_type,
+        s.created_at,
         sd.origin,
         sd.destination,
-        sd.recipient_name
+        sd.recipient_name,
+        sd.phone_number,
+        f.code AS flight_code,
+        f.aircraft AS flight_aircraft,
+        f.origin_code AS flight_origin,
+        f.destination_code AS flight_destination,
+        f.status AS flight_status
       FROM shipments s
       JOIN shipment_details sd ON s.id = sd.shipment_id
+      LEFT JOIN flights f ON s.flight_id = f.id
       WHERE LOWER(s.awb) = LOWER(${awb})
       LIMIT 1
     `;
 
     if (!shipment[0]) {
-      return { success: false, error: "AWB tidak ditemukan." };
+      return { success: false, error: "AWB not found." };
     }
 
     const history = await sql`
