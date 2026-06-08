@@ -772,9 +772,11 @@ export async function fetchDashboardFlights(limit = 3) {
         COALESCE(status, 'SCHEDULED') AS status,
         TO_CHAR(COALESCE(departure_time, TIME '08:00'), 'HH24:MI') AS departure_time,
         TO_CHAR(COALESCE(arrival_time, TIME '10:00'), 'HH24:MI') AS arrival_time,
-        COALESCE(origin_code, 'CGK') AS origin_code,
-        COALESCE(destination_code, 'SIN') AS destination_code
+        origin_code,
+        destination_code
       FROM flights
+      WHERE origin_code IS NOT NULL
+        AND destination_code IS NOT NULL
       ORDER BY
         CASE
           WHEN status ILIKE 'ACTIVE' THEN 1

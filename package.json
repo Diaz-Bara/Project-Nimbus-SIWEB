@@ -20,6 +20,7 @@
     "react": "latest",
     "react-dom": "latest",
     "react-leaflet": "^5.0.0",
+    "recharts": "^3.8.1",
     "tailwindcss": "3.4.17",
     "typescript": "5.7.3",
     "use-debounce": "^10.0.4",
