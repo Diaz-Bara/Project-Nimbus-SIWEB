@@ -75,7 +75,7 @@ export default function LoginPage() {
           <input
             id="username"
             type="text"
-            placeholder="admin or operator"
+            placeholder='admin or operator 1'
             aria-invalid={Boolean(usernameError)}
             className={fieldControlClass(Boolean(usernameError), "form")}
             autoComplete="username"

@@ -1,5 +1,7 @@
 import Image from "next/image";
+import Link from "next/link";
 import { Suspense } from "react";
+import { ArrowLeftIcon } from "@heroicons/react/24/outline";
 import TrackingForm from "@/components/tracking/TrackingForm";
 
 function TrackingFormFallback() {
@@ -13,7 +15,15 @@ function TrackingFormFallback() {
 
 export default function TrackingPage() {
   return (
-    <section className="fade-in min-h-screen pt-20 pb-16 px-6 bg-gradient-to-b from-gray-50 via-white to-blue-50/50">
+    <section className="relative fade-in min-h-screen pt-20 pb-16 px-6 bg-gradient-to-b from-gray-50 via-white to-blue-50/50">
+      <Link
+        href="/"
+        className="absolute top-6 left-6 inline-flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors z-10"
+      >
+        <ArrowLeftIcon className="w-4 h-4" />
+        Back
+      </Link>
+
       <div className="max-w-3xl mx-auto">
         <div className="text-center mb-8">
           <Image

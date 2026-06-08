@@ -1,6 +1,7 @@
 import postgres from "postgres";
 import bcrypt from "bcryptjs";
 import { flightSeedData } from "@/lib/flight-seed-data";
+import { getPasswordForUser } from "@/lib/user-credentials";
 
 const sql = postgres(process.env.POSTGRES_URL!, {
   ssl: "require",
@@ -32,7 +33,7 @@ export async function GET() {
       const usersData = [
         { name: "Boas Salosa", email: "op1@nimbus.cargo", empId: "ADM-99210", role: "ADMIN", terminal: "Global Access", status: "ACTIVE", verified: true, lastLogin: "12 minutes" },
         { name: "Jay Idzes", email: "op2@nimbus.cargo", empId: "ADM-88432", role: "ADMIN", terminal: "CGK-Main", status: "ACTIVE", verified: true, lastLogin: "2 hours" },
-        { name: "Bambang Pamungkas", email: "op3@nimbus.cargo", empId: "OPR-77001", role: "OPERATOR", terminal: "DPS-Terminal", status: "INACTIVE", verified: false, lastLogin: "3 days" },
+        { name: "Bambang Pamungkas", email: "op3@nimbus.cargo", empId: "OPR-77001", role: "OPERATOR", terminal: "DPS-Terminal", status: "ACTIVE", verified: true, lastLogin: "3 days" },
         { name: "Justin Hubner", email: "op4@nimbus.cargo", empId: "OPR-88544", role: "OPERATOR", terminal: "KNO-Gateway", status: "ACTIVE", verified: true, lastLogin: "5 minutes" },
         { name: "Ayu Kartika", email: "op5@nimbus.cargo", empId: "OPR-92184", role: "OPERATOR", terminal: "SUB-Terminal", status: "ACTIVE", verified: true, lastLogin: "28 minutes" },
         { name: "Raka Pratama", email: "op6@nimbus.cargo", empId: "ADM-11872", role: "ADMIN", terminal: "Global Access", status: "ACTIVE", verified: true, lastLogin: "47 minutes" },
@@ -50,13 +51,10 @@ export async function GET() {
         { name: "Andi Wijaya", email: "op18@nimbus.cargo", empId: "ADM-77845", role: "ADMIN", terminal: "Global Access", status: "ACTIVE", verified: true, lastLogin: "2 days" },
         { name: "Dewi Lestari", email: "op19@nimbus.cargo", empId: "OPR-69034", role: "OPERATOR", terminal: "MES-Station", status: "ACTIVE", verified: true, lastLogin: "3 days" },
         { name: "Hendra Gunawan", email: "op20@nimbus.cargo", empId: "OPR-81163", role: "OPERATOR", terminal: "CGK-Main", status: "ACTIVE", verified: true, lastLogin: "4 days" },
-      ].map((user) => ({
-        ...user,
-        password: "password123",
-      }));
+      ];
 
       for (const u of usersData) {
-        const hash = await bcrypt.hash(u.password, 10);
+        const hash = await bcrypt.hash(getPasswordForUser(u.email), 10);
         await sql`
           INSERT INTO users (name, email, password, role, emp_id, terminal, status, verified, last_login)
           VALUES (${u.name}, ${u.email}, ${hash}, ${u.role}, ${u.empId}, ${u.terminal}, ${u.status}, ${u.verified}, NOW() - (${u.lastLogin})::interval)

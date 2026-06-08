@@ -19,6 +19,7 @@ import {
   verifyOtpAndGrantReset,
 } from '@/lib/otp-store';
 import { flightSeedData } from '@/lib/flight-seed-data';
+import { getPasswordForUser } from '@/lib/user-credentials';
 
 const sql = postgres(process.env.POSTGRES_URL!, {
   ssl: 'require',
@@ -49,7 +50,7 @@ type UserFormData = {
 const userSeedData = [
   { name: "Boas Salosa", email: "op1@nimbus.cargo", empId: "ADM-99210", role: "ADMIN", terminal: "Global Access", status: "ACTIVE", verified: true, lastLogin: "12 minutes" },
   { name: "Jay Idzes", email: "op2@nimbus.cargo", empId: "ADM-88432", role: "ADMIN", terminal: "CGK-Main", status: "ACTIVE", verified: true, lastLogin: "2 hours" },
-  { name: "Bambang Pamungkas", email: "op3@nimbus.cargo", empId: "OPR-77001", role: "OPERATOR", terminal: "DPS-Terminal", status: "INACTIVE", verified: false, lastLogin: "3 days" },
+  { name: "Bambang Pamungkas", email: "op3@nimbus.cargo", empId: "OPR-77001", role: "OPERATOR", terminal: "DPS-Terminal", status: "ACTIVE", verified: true, lastLogin: "3 days" },
   { name: "Justin Hubner", email: "op4@nimbus.cargo", empId: "OPR-88544", role: "OPERATOR", terminal: "KNO-Gateway", status: "ACTIVE", verified: true, lastLogin: "5 minutes" },
   { name: "Ayu Kartika", email: "op5@nimbus.cargo", empId: "OPR-92184", role: "OPERATOR", terminal: "SUB-Terminal", status: "ACTIVE", verified: true, lastLogin: "28 minutes" },
   { name: "Raka Pratama", email: "op6@nimbus.cargo", empId: "ADM-11872", role: "ADMIN", terminal: "Global Access", status: "ACTIVE", verified: true, lastLogin: "47 minutes" },
@@ -131,32 +132,8 @@ async function ensureUserSchema() {
   await sql`UPDATE users SET role = UPPER(role) WHERE role IS NOT NULL`;
   await sql`UPDATE users SET status = UPPER(status) WHERE status IS NOT NULL`;
 
-  const seedState = await sql`
-    SELECT
-      COUNT(*)::int AS total,
-      COUNT(*) FILTER (WHERE emp_id IS NOT NULL)::int AS with_emp_id
-    FROM users
-  `;
-
-  if (
-    Number(seedState[0]?.total || 0) >= userSeedData.length &&
-    Number(seedState[0]?.with_emp_id || 0) >= userSeedData.length
-  ) {
-    userSchemaReady = true;
-    return;
-  }
-
-  const defaultHash = await bcrypt.hash("password123", 10);
-  const adminShortcutHash = await bcrypt.hash("admin123", 10);
-  const operatorShortcutHash = await bcrypt.hash("operator123", 10);
-
   for (const user of userSeedData) {
-    const passwordHash =
-      user.email === "op1@nimbus.cargo"
-        ? adminShortcutHash
-        : user.email === "op4@nimbus.cargo"
-          ? operatorShortcutHash
-          : defaultHash;
+    const passwordHash = await bcrypt.hash(getPasswordForUser(user.email), 10);
 
     await sql`
       INSERT INTO users (
@@ -183,7 +160,7 @@ async function ensureUserSchema() {
       )
       ON CONFLICT (email) DO UPDATE SET
         name = EXCLUDED.name,
-        password = COALESCE(users.password, EXCLUDED.password),
+        password = EXCLUDED.password,
         role = EXCLUDED.role,
         emp_id = EXCLUDED.emp_id,
         terminal = EXCLUDED.terminal,
