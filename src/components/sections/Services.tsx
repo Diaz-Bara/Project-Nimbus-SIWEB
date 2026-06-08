@@ -9,28 +9,28 @@ import {
 export default function Services() {
   const services = [
     {
-      title: "Pelacakan Kargo",
-      desc: "Pantau status pengiriman Anda secara real-time melalui sistem pelacakan terintegrasi",
+      title: "Cargo Tracking",
+      desc: "Monitor your shipment status in real time through an integrated tracking system",
       icon: CubeIcon,
     },
     {
-      title: "Monitoring Penerbangan",
-      desc: "Pantau status penerbangan kargo secara real-time untuk memastikan ketepatan waktu pengiriman",
+      title: "Flight Monitoring",
+      desc: "Track cargo flight status in real time to ensure on-time delivery",
       icon: PaperAirplaneIcon,
     },
     {
-      title: "Manajemen Pengiriman",
-      desc: "Kelola proses pengiriman kargo secara efisien dari penerimaan hingga tujuan akhir",
+      title: "Shipment Management",
+      desc: "Manage cargo shipments efficiently from intake to final destination",
       icon: ClipboardDocumentCheckIcon,
     },
     {
-      title: "Tracking Log Real-Time",
-      desc: "Pantau setiap perubahan status kargo secara real-time dengan pencatatan waktu yang akurat",
+      title: "Real-Time Tracking Logs",
+      desc: "Monitor every cargo status change in real time with accurate timestamps",
       icon: BoltIcon,
     },
     {
-      title: "Sistem Operasional Terpusat",
-      desc: "Pantau seluruh aktivitas kargo dalam satu sistem terpusat yang terintegrasi",
+      title: "Centralized Operations",
+      desc: "Monitor all cargo activity in one integrated operational system",
       icon: ComputerDesktopIcon,
     },
   ];
@@ -38,7 +38,7 @@ export default function Services() {
   return (
     <section id="Services" className="py-20 bg-gray-200 scroll-mt-40">
       <div className="max-w-6xl mx-auto px-6 text-center">
-        <h2 className="text-2xl font-bold">Layanan Kami</h2>
+        <h2 className="text-2xl font-bold">Our Services</h2>
         <div className="w-12 h-1 bg-orange-400 mx-auto mt-2 mb-12 rounded"></div>
 
         <div className="space-y-8">
@@ -56,9 +56,7 @@ export default function Services() {
                   </div>
 
                   <h3 className="font-semibold mb-2">{item.title}</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    {item.desc}
-                  </p>
+                  <p className="text-sm text-gray-600 leading-relaxed">{item.desc}</p>
                 </div>
               );
             })}
@@ -78,9 +76,7 @@ export default function Services() {
                   </div>
 
                   <h3 className="font-semibold mb-2">{item.title}</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    {item.desc}
-                  </p>
+                  <p className="text-sm text-gray-600 leading-relaxed">{item.desc}</p>
                 </div>
               );
             })}

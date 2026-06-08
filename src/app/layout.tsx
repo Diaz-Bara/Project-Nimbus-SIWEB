@@ -8,7 +8,7 @@ export const metadata: Metadata = {
     template: "%s | Nimbus Cargo Express",
     default: "Nimbus Cargo Express - Precision Logistics",
   },
-  description: "Sistem Informasi Cargo Darat, Udara, dan Laut terpercaya.",
+  description: "Trusted land, air, and sea cargo information system.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

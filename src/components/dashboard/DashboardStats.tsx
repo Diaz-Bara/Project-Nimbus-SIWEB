@@ -9,7 +9,7 @@ export default async function DashboardStats() {
       <StatsCard title="Active Cargo" value={stats.total.toString()} sub="Database synced" />
       <StatsCard title="In Transit" value={stats.inTransit.toString()} sub="Live shipment status" />
       <StatsCard title="Canceled Cargo" value={stats.canceled.toString()} sub="Canceled shipment status" />
-      <StatsCard title="On-Time Index" value="A-" sub="Reviewed from shipment data" />
+      <StatsCard title="Delivered" value={stats.delivered.toString()} sub="Total shipments delivered" />
     </div>
   );
 }

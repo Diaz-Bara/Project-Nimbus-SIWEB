@@ -1,5 +1,6 @@
 import Sidebar from "@/components/dashboard/Sidebar";
 import Topbar from "@/components/dashboard/Topbar";
+import DashboardPageHeader from "@/components/layout/DashboardPageHeader";
 import ShipmentStats from "@/components/shipments/ShipmentStats";
 import SearchWrapper from "@/components/SearchWrapper";
 import Pagination from "@/components/pagination";
@@ -27,13 +28,11 @@ export default async function ShipmentsPage(props: {
           <Topbar />
         </div>
         <div className="px-6 pb-6 overflow-y-auto">
-          {/* TITLE SESUAI KODEMU */}
-          <h1 className="text-xl font-bold text-blue-900 mb-1">
-            Shipment Central
-          </h1>
-          <p className="text-sm text-gray-500 mb-6">
-            Real-time logistics monitoring and freight management.
-          </p>
+          <DashboardPageHeader
+            eyebrow="Freight Management"
+            title="Shipment Central"
+            subtitle="Real-time logistics monitoring and freight management."
+          />
 
 {/* STATS DENGAN SUSPENSE */}
           <Suspense 
@@ -54,7 +53,7 @@ export default async function ShipmentsPage(props: {
           {/* SEARCH AREA */}
           <div className="mt-6 mb-4">
             <Suspense fallback={<div className="h-[42px] w-full bg-gray-200 rounded-lg animate-pulse"></div>}>
-              <SearchWrapper placeholder="Cari berdasarkan AWB, Asal, atau Tujuan..." />
+              <SearchWrapper placeholder="Search by AWB, origin, or destination..." />
             </Suspense>
           </div>
 

@@ -8,16 +8,15 @@ export default function Navbar() {
   const pathname = usePathname();
 
   const menu = [
-    { name: "Beranda", path: "/" },
-    { name: "Tentang", path: "/Tentang" },
-    { name: "Layanan", path: "/Layanan" },
-    { name: "Klien", path: "/Klien" },
-    { name: "Kontak", path: "/Kontak" },
+    { name: "Home", path: "/" },
+    { name: "About", path: "/about" },
+    { name: "Services", path: "/services" },
+    { name: "Clients", path: "/clients" },
+    { name: "Contact", path: "/contact" },
   ];
 
   return (
     <nav className="fixed top-0 left-0 w-full z-50 bg-white shadow-md px-6 py-4 flex justify-between items-center">
-      
       <div className="flex items-center gap-2">
         <Image src="/logo.png" alt="logo" width={40} height={40} />
         <h1 className="font-bold whitespace-nowrap">

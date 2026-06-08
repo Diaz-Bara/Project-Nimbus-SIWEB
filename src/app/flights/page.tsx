@@ -1,14 +1,12 @@
 import Sidebar from "@/components/dashboard/Sidebar";
 import Topbar from "@/components/dashboard/Topbar";
-import FleetStats from "@/components/flights/FleetStats";
-import SearchWrapper from "@/components/SearchWrapper";
+import DashboardPageHeader from "@/components/layout/DashboardPageHeader";
 import Pagination from "@/components/pagination";
-import FlightList from "@/components/flights/FlightList";
-import FlightsListSkeleton from "@/components/flights/FlightSkeleton";
+import FlightInteractive from "@/components/flights/FlightInteractive";
+import FlightsSearchBar from "@/components/flights/FlightsSearchBar";
 import { Suspense } from "react";
 import FlightMap from "@/components/flights/FlightMap";
-import { fetchFlightsPages } from "@/lib/actions";
-import Link from "next/link";
+import { fetchFlights, fetchFlightsPages } from "@/lib/actions";
 
 export default async function FlightsPage(props: {
   searchParams?: Promise<{
@@ -20,6 +18,7 @@ export default async function FlightsPage(props: {
   const query = searchParams?.query || "";
   const currentPage = Number(searchParams?.page) || 1;
   const totalPages = await fetchFlightsPages(query);
+  const flights = await fetchFlights(query, currentPage);
 
   return (
     <div className="h-screen flex bg-gray-100">
@@ -31,76 +30,34 @@ export default async function FlightsPage(props: {
         </div>
 
         <div className="px-6 pb-6 overflow-y-auto">
-          {/* HEADER */}
-          <p className="text-xs text-gray-400">FLEET OPERATIONS</p>
-          <h1 className="text-2xl font-bold text-blue-900 mb-6">
-            Flights Schedule
-          </h1>
+          <DashboardPageHeader
+            eyebrow="Fleet Operations"
+            title="Flights Schedule"
+            subtitle="Manage scheduled flights and live route coverage."
+          />
 
-          {/* FILTER & SEARCH */}
-          <div className="grid md:grid-cols-4 gap-4 mb-6">
-            <div className="md:col-span-3">
-              {/* SKELETON UNTUK SEARCH BAR */}
-              <Suspense fallback={<div className="h-[42px] w-full bg-gray-200 rounded-lg animate-pulse"></div>}>
-                <SearchWrapper placeholder="Cari kode penerbangan atau destinasi (contoh: Tokyo atau PT-882)..." />
-              </Suspense>
-            </div>
-            <Link
-              href="/flights?query=ACTIVE&page=1"
-              role="button"
-              className="bg-white p-3 rounded-lg text-sm shadow-sm flex items-center justify-center font-bold hover:bg-blue-50 hover:text-blue-700 transition-colors focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              Quick Filters
-            </Link>
+          <FlightsSearchBar placeholder="Search flight code or destination (e.g. Tokyo or PT-882)..." />
+
+          <div className="mb-6" key={query + currentPage}>
+            <FlightInteractive initialFlights={flights} />
           </div>
 
-          {/* LIST DENGAN SUSPENSE (SKELETON LOADING) */}
-          <div className="mb-6">
-            <Suspense 
-              key={query + currentPage} 
-              fallback={<FlightsListSkeleton />} 
-            >
-              <FlightList query={query} currentPage={currentPage} />
-            </Suspense>
-          </div>
-
-          {/* PAGINATION */}
           {totalPages > 1 && (
             <div className="mt-5 flex w-full justify-center">
               <Pagination totalPages={totalPages} />
             </div>
           )}
 
-          {/* BOTTOM */}
-          <div className="grid md:grid-cols-3 gap-6 mt-6">
-           {/* SKELETON UNTUK MAP */}
-            <div className="md:col-span-2">
-              <Suspense 
-                fallback={
-                  <div className="bg-white rounded-xl shadow-sm h-64 animate-pulse flex items-center justify-center">
-                    <div className="h-4 w-1/3 bg-gray-200 rounded"></div>
-                  </div>
-                }
-              >
-                <FlightMap />
-              </Suspense>
-            </div>
-            
-            {/* SKELETON UNTUK KOTAK BIRU (LANGKAH 2) */}
-            <Suspense 
+          <div className="mt-6 w-full">
+            <Suspense
               fallback={
-                <div className="bg-blue-900 p-6 rounded-xl shadow-sm h-full flex flex-col justify-center animate-pulse">
-                  <div className="h-3 w-1/2 bg-blue-800 rounded mb-4"></div>
-                  <div className="h-10 w-1/3 bg-blue-800 rounded mb-2"></div>
-                  <div className="h-3 w-1/2 bg-blue-800 rounded mb-6"></div>
-                  <div className="h-2 w-full bg-blue-800 rounded-full mb-2"></div>
-                  <div className="h-3 w-1/3 bg-blue-800 rounded"></div>
+                <div className="bg-white rounded-xl shadow-sm h-96 animate-pulse flex items-center justify-center">
+                  <div className="h-4 w-1/3 bg-gray-200 rounded" />
                 </div>
               }
             >
-              <FleetStats />
+              <FlightMap />
             </Suspense>
-
           </div>
         </div>
       </div>

@@ -1,17 +1,29 @@
 import Sidebar from "@/components/dashboard/Sidebar";
 import Topbar from "@/components/dashboard/Topbar";
-import DashboardStats from "@/components/dashboard/DashboardStats"; // <-- Import komponen baru
+import DashboardPageHeader from "@/components/layout/DashboardPageHeader";
+import DashboardStats from "@/components/dashboard/DashboardStats";
 import FlightList from "@/components/dashboard/FlightList";
 import CargoTable from "@/components/dashboard/CargoTable";
+import DashboardFlightMap from "@/components/dashboard/DashboardFlightMap";
+import CargoProgressChart from "@/components/dashboard/CargoProgressChart";
 import { Suspense } from "react";
 
 export default function Dashboard() {
   return (
-    <div className="h-screen flex overflow-hidden">
+    <div className="h-screen flex bg-gray-100 overflow-hidden">
       <Sidebar />
 
-      <div className="flex-1 px-6 py-4 overflow-y-auto">
-        <Topbar />
+      <div className="flex-1 flex flex-col overflow-hidden">
+        <div className="p-4">
+          <Topbar />
+        </div>
+
+        <div className="px-6 pb-6 overflow-y-auto">
+        <DashboardPageHeader
+          eyebrow="Operations Overview"
+          title="Dashboard"
+          subtitle="Real-time cargo metrics and fleet activity."
+        />
 
         {/* STATS SECTION DENGAN SUSPENSE */}
         <Suspense
@@ -71,6 +83,39 @@ export default function Dashboard() {
             </Suspense>
           </div>
 
+        </div>
+
+        {/* BAGIAN BAWAH: MAP + CHART */}
+        <div className="grid md:grid-cols-2 gap-6 mt-6">
+          <Suspense
+            fallback={
+              <div className="bg-white rounded-xl shadow-sm h-72 animate-pulse flex items-center justify-center">
+                <div className="h-4 w-1/3 bg-gray-200 rounded" />
+              </div>
+            }
+          >
+            <DashboardFlightMap />
+          </Suspense>
+
+          <Suspense
+            fallback={
+              <div className="bg-white rounded-xl shadow-sm h-72 animate-pulse p-6">
+                <div className="h-4 w-1/4 bg-gray-200 rounded mb-4" />
+                <div className="flex items-end gap-2 h-48">
+                  {[1, 2, 3, 4, 5].map((i) => (
+                    <div
+                      key={i}
+                      className="flex-1 bg-gray-100 rounded"
+                      style={{ height: `${i * 20}%` }}
+                    />
+                  ))}
+                </div>
+              </div>
+            }
+          >
+            <CargoProgressChart />
+          </Suspense>
+        </div>
         </div>
       </div>
     </div>

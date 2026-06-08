@@ -22,7 +22,13 @@ export default function Sidebar() {
   const router = useRouter();
 
   useEffect(() => {
-    const storedUser = JSON.parse(localStorage.getItem("user") || "null");
+    let storedUser: { email?: string; role?: string } | null = null;
+
+    try {
+      storedUser = JSON.parse(localStorage.getItem("user") || "null");
+    } catch {
+      localStorage.removeItem("user");
+    }
 
     if (!storedUser) {
       router.replace("/login");
@@ -105,7 +111,13 @@ export default function Sidebar() {
                 <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
 
                 {open && (
-                  <span className="ml-3 font-medium">{item.name}</span>
+                  <span
+                    className={`ml-3 text-sm font-semibold tracking-wide ${
+                      active ? "text-blue-800" : "text-gray-700"
+                    }`}
+                  >
+                    {item.name}
+                  </span>
                 )}
 
                 {active && (

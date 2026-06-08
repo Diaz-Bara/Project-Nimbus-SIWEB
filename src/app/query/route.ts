@@ -5,14 +5,14 @@ const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 async function getRelationalShipments() {
   const data = await sql`
     SELECT 
-      s.awb AS "Nomor Resi",
-      c.name AS "Nama Pelanggan",
-      f.code AS "Penerbangan",
-      sd.origin AS "Asal",
-      sd.destination AS "Tujuan",
-      s.weight AS "Berat (kg)",
-      s.price AS "Harga (Rp)",
-      STRING_AGG(i.name, ', ') AS "Daftar Barang (M:M)"
+      s.awb AS "Tracking Number",
+      c.name AS "Customer Name",
+      f.code AS "Flight",
+      sd.origin AS "Origin",
+      sd.destination AS "Destination",
+      s.weight AS "Weight (kg)",
+      s.price AS "Price (IDR)",
+      STRING_AGG(i.name, ', ') AS "Item List (M:M)"
     FROM shipments s
     JOIN customers c ON s.customer_id = c.id
     JOIN flights f ON s.flight_id = f.id

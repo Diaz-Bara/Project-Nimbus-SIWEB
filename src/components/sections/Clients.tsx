@@ -12,7 +12,7 @@ export default function Clients() {
       <div className="max-w-6xl mx-auto text-center">
         
         <h2 className="text-2xl md:text-3xl font-bold mb-10">
-          Klien & Mitra Kami
+          Our Clients & Partners
         </h2>
 
         <div className="w-16 h-1 bg-orange-400 mx-auto mt-2 mb-8 rounded"></div>
