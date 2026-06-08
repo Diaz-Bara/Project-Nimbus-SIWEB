@@ -2,11 +2,14 @@ import Sidebar from "@/components/dashboard/Sidebar";
 import Topbar from "@/components/dashboard/Topbar";
 import ShipmentForm from "@/components/shipments/ShipmentForm";
 import { notFound } from "next/navigation";
-import { fetchShipmentById } from "@/lib/actions";
+import { fetchFlightNetworkCities, fetchShipmentById } from "@/lib/actions";
 
 export default async function EditShipmentPage(props: { params: Promise<{ id: string }> }) {
   const params = await props.params;
-  const shipment = await fetchShipmentById(Number(params.id));
+  const [shipment, availableCities] = await Promise.all([
+    fetchShipmentById(Number(params.id)),
+    fetchFlightNetworkCities(),
+  ]);
   if (!shipment) { notFound(); }
 
   return (
@@ -20,7 +23,7 @@ export default async function EditShipmentPage(props: { params: Promise<{ id: st
               Shipment Central/<span className="font-bold">Manage Shipments</span>
             </h1>
           </div>
-          <ShipmentForm data={shipment as any} />
+          <ShipmentForm data={shipment as any} availableCities={availableCities} />
         </div>
       </div>
     </div>

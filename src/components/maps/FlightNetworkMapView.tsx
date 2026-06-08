@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useMemo } from "react";
 import {
   MapContainer,
   TileLayer,
@@ -30,8 +30,16 @@ function MapBoundsFitter({ bounds }: { bounds: LatLngBoundsExpression | null }) 
   return null;
 }
 
+export type RoutePreview = {
+  originCode: string;
+  destinationCode: string;
+  originCity?: string;
+  destinationCity?: string;
+};
+
 type FlightNetworkMapViewProps = {
   flights: NetworkFlight[];
+  routePreview?: RoutePreview | null;
   heightClass?: string;
   scrollWheelZoom?: boolean;
   emptyMessage?: string;
@@ -39,20 +47,52 @@ type FlightNetworkMapViewProps = {
 
 export default function FlightNetworkMapView({
   flights,
+  routePreview = null,
   heightClass = "h-72",
   scrollWheelZoom = false,
   emptyMessage = "No plottable flight routes",
 }: FlightNetworkMapViewProps) {
   const { routes, airportCodes } = buildNetworkRoutes(flights);
 
-  const bounds: LatLngBoundsExpression | null =
-    routes.length > 0
-      ? routes.flatMap(({ origin, destination }) => [origin, destination])
-      : null;
+  const previewSegment = useMemo(() => {
+    if (!routePreview) return null;
 
-  const mapCenter: LatLngExpression = routes.length ? routes[0].origin : [2, 110];
+    const origin = getAirportCoords(routePreview.originCode);
+    const destination = getAirportCoords(routePreview.destinationCode);
+    if (!origin || !destination) return null;
 
-  if (routes.length === 0) {
+    return { origin, destination, routePreview };
+  }, [routePreview]);
+
+  const highlightedAirports = useMemo(() => {
+    const codes = new Set(airportCodes);
+    if (routePreview?.originCode) codes.add(routePreview.originCode.toUpperCase());
+    if (routePreview?.destinationCode) codes.add(routePreview.destinationCode.toUpperCase());
+    return Array.from(codes);
+  }, [airportCodes, routePreview]);
+
+  const bounds: LatLngBoundsExpression | null = useMemo(() => {
+    const points: [number, number][] = routes.flatMap(({ origin, destination }) => [
+      origin,
+      destination,
+    ]);
+
+    if (previewSegment) {
+      points.push(previewSegment.origin, previewSegment.destination);
+    }
+
+    return points.length > 0 ? points : null;
+  }, [routes, previewSegment]);
+
+  const mapCenter: LatLngExpression = previewSegment
+    ? previewSegment.origin
+    : routes.length
+      ? routes[0].origin
+      : [2, 110];
+
+  const hasRenderableMap = routes.length > 0 || previewSegment;
+
+  if (!hasRenderableMap) {
     return (
       <div
         className={`${heightClass} rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center text-sm text-gray-400`}
@@ -65,6 +105,7 @@ export default function FlightNetworkMapView({
   return (
     <div className={`${heightClass} rounded-lg overflow-hidden z-0`}>
       <MapContainer
+        key={`${routePreview?.originCode || "all"}-${routePreview?.destinationCode || "all"}-${routes.length}`}
         center={mapCenter}
         zoom={4}
         className="h-full w-full"
@@ -75,6 +116,27 @@ export default function FlightNetworkMapView({
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
         <MapBoundsFitter bounds={bounds} />
+        {previewSegment && (
+          <Polyline
+            positions={[previewSegment.origin, previewSegment.destination]}
+            pathOptions={{
+              color: "#2563eb",
+              weight: 4,
+              opacity: 0.95,
+              dashArray: routes.length === 0 ? "8 6" : undefined,
+            }}
+          >
+            <Popup>
+              <div className="text-sm">
+                <p className="font-bold text-blue-700">Selected Route</p>
+                <p className="text-gray-600">
+                  {routePreview?.originCity || previewSegment.routePreview.originCode} →{" "}
+                  {routePreview?.destinationCity || previewSegment.routePreview.destinationCode}
+                </p>
+              </div>
+            </Popup>
+          </Polyline>
+        )}
         {routes.map(({ flight, origin, destination }) => (
           <Polyline
             key={flight.id}
@@ -96,18 +158,25 @@ export default function FlightNetworkMapView({
             </Popup>
           </Polyline>
         ))}
-        {airportCodes.map((code) => {
+        {highlightedAirports.map((code) => {
           const coords = getAirportCoords(code);
           if (!coords) return null;
+
+          const isSelectedOrigin = routePreview?.originCode.toUpperCase() === code;
+          const isSelectedDestination = routePreview?.destinationCode.toUpperCase() === code;
 
           return (
             <CircleMarker
               key={code}
               center={coords}
-              radius={6}
+              radius={isSelectedOrigin || isSelectedDestination ? 8 : 6}
               pathOptions={{
-                color: "#1d4ed8",
-                fillColor: "#3b82f6",
+                color: isSelectedOrigin || isSelectedDestination ? "#1d4ed8" : "#1d4ed8",
+                fillColor: isSelectedOrigin
+                  ? "#22c55e"
+                  : isSelectedDestination
+                    ? "#f97316"
+                    : "#3b82f6",
                 fillOpacity: 0.9,
                 weight: 2,
               }}

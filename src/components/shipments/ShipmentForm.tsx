@@ -33,8 +33,14 @@ type Shipment = {
   description?: string;
 };
 
+type AvailableCity = {
+  code: string;
+  city: string;
+};
+
 type ShipmentFormProps = {
   data?: Shipment | null;
+  availableCities?: AvailableCity[];
 };
 
 function formatDate(value?: string | Date) {
@@ -43,7 +49,18 @@ function formatDate(value?: string | Date) {
   return value.slice(0, 10);
 }
 
-export default function ShipmentForm({ data }: ShipmentFormProps) {
+function uniqueCities(cities: AvailableCity[]) {
+  const seen = new Set<string>();
+  return cities.filter((entry) => {
+    const key = entry.city.toLowerCase();
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+}
+
+export default function ShipmentForm({ data, availableCities = [] }: ShipmentFormProps) {
+  const cityOptions = uniqueCities(availableCities);
   const router = useRouter();
   const [form, setForm] = useState({
     awb: data?.awb || "",
@@ -223,27 +240,49 @@ export default function ShipmentForm({ data }: ShipmentFormProps) {
             />
           </FormField>
 
-          <FormField label="Origin City" htmlFor="origin" required error={fieldErrors.origin}>
-            <input
-              id="origin"
-              placeholder="Jakarta"
-              aria-invalid={Boolean(fieldErrors.origin)}
-              className={inputClass("origin")}
-              value={form.origin}
-              onChange={(e) => updateField("origin", e.target.value)}
-            />
-          </FormField>
+          <div className="grid grid-cols-2 gap-4">
+            <FormField label="Origin City" htmlFor="origin" required error={fieldErrors.origin}>
+              <select
+                id="origin"
+                aria-invalid={Boolean(fieldErrors.origin)}
+                className={inputClass("origin")}
+                value={form.origin}
+                onChange={(e) => updateField("origin", e.target.value)}
+              >
+                <option value="">Select origin city</option>
+                {form.origin &&
+                  !cityOptions.some((city) => city.city === form.origin) && (
+                    <option value={form.origin}>{form.origin}</option>
+                  )}
+                {cityOptions.map((city) => (
+                  <option key={`origin-${city.code}`} value={city.city}>
+                    {city.city}
+                  </option>
+                ))}
+              </select>
+            </FormField>
 
-          <FormField label="Destination City" htmlFor="destination" required error={fieldErrors.destination}>
-            <input
-              id="destination"
-              placeholder="Surabaya"
-              aria-invalid={Boolean(fieldErrors.destination)}
-              className={inputClass("destination")}
-              value={form.destination}
-              onChange={(e) => updateField("destination", e.target.value)}
-            />
-          </FormField>
+            <FormField label="Destination City" htmlFor="destination" required error={fieldErrors.destination}>
+              <select
+                id="destination"
+                aria-invalid={Boolean(fieldErrors.destination)}
+                className={inputClass("destination")}
+                value={form.destination}
+                onChange={(e) => updateField("destination", e.target.value)}
+              >
+                <option value="">Select destination city</option>
+                {form.destination &&
+                  !cityOptions.some((city) => city.city === form.destination) && (
+                    <option value={form.destination}>{form.destination}</option>
+                  )}
+                {cityOptions.map((city) => (
+                  <option key={`destination-${city.code}`} value={city.city}>
+                    {city.city}
+                  </option>
+                ))}
+              </select>
+            </FormField>
+          </div>
 
           <FormField label="Weight (kg)" htmlFor="weight" required error={fieldErrors.weight}>
             <input
