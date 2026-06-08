@@ -4,7 +4,14 @@ import postgres from 'postgres';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
-import { getPasswordForUser } from '@/lib/user-credentials';
+import { getPasswordForUser, resolveAccountEmail } from '@/lib/user-credentials';
+import { AUTH_ERRORS } from '@/lib/auth-credentials';
+import {
+  createOtp,
+  verifyOtpAndGrantReset,
+  hasResetGrant,
+  consumeResetGrant,
+} from '@/lib/otp-store';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 export { sql };
@@ -1013,5 +1020,183 @@ export async function fetchTrackingOverview() {
   } catch (error) {
     console.error("Fetch tracking overview error:", error);
     return { shipment: null, history: [] };
+  }
+}
+
+export async function requestPasswordOtp(email: string, empId: string) {
+  const normalizedEmail = resolveAccountEmail(email).toLowerCase();
+  const normalizedEmpId = empId.trim().toUpperCase();
+
+  if (!normalizedEmail || !normalizedEmpId) {
+    return {
+      success: false as const,
+      error: AUTH_ERRORS.required,
+      emailError: !normalizedEmail ? AUTH_ERRORS.required : null,
+      empIdError: !normalizedEmpId ? AUTH_ERRORS.required : null,
+    };
+  }
+
+  try {
+    await ensureUserSchema();
+    const rows = await sql`
+      SELECT email, emp_id
+      FROM users
+      WHERE LOWER(email) = ${normalizedEmail}
+        AND UPPER(emp_id) = ${normalizedEmpId}
+      LIMIT 1
+    `;
+    const matchedUser = rows[0];
+
+    if (!matchedUser) {
+      return {
+        success: false as const,
+        error: AUTH_ERRORS.invalidForgotDetails,
+        emailError: AUTH_ERRORS.invalidForgotDetails,
+        empIdError: null,
+      };
+    }
+
+    const otp = createOtp(matchedUser.email, matchedUser.emp_id);
+
+    return {
+      success: true as const,
+      message: AUTH_ERRORS.otpSent,
+      email: matchedUser.email,
+      empId: matchedUser.emp_id,
+      demoOtp: otp,
+    };
+  } catch (error) {
+    console.error("requestPasswordOtp:", error);
+    return {
+      success: false as const,
+      error: "A system error occurred.",
+      emailError: null,
+      empIdError: null,
+    };
+  }
+}
+
+export async function verifyPasswordOtp(
+  email: string,
+  empId: string,
+  otp: string
+) {
+  const normalizedEmail = resolveAccountEmail(email).toLowerCase();
+  const normalizedEmpId = empId.trim().toUpperCase();
+
+  if (!normalizedEmail || !normalizedEmpId || !otp.trim()) {
+    return {
+      success: false as const,
+      error: AUTH_ERRORS.required,
+    };
+  }
+
+  const valid = verifyOtpAndGrantReset(normalizedEmail, normalizedEmpId, otp);
+  if (!valid) {
+    return { success: false as const, error: AUTH_ERRORS.otpInvalid };
+  }
+
+  return { success: true as const, message: AUTH_ERRORS.otpVerified };
+}
+
+export async function resetPasswordAfterOtp(
+  email: string,
+  empId: string,
+  newPassword: string,
+  confirmPassword: string
+) {
+  const normalizedEmail = resolveAccountEmail(email).toLowerCase();
+  const normalizedEmpId = empId.trim().toUpperCase();
+
+  if (!normalizedEmail || !normalizedEmpId) {
+    return {
+      success: false as const,
+      error: AUTH_ERRORS.required,
+      passwordError: null,
+      confirmPasswordError: null,
+    };
+  }
+
+  if (!hasResetGrant(normalizedEmail, normalizedEmpId)) {
+    return {
+      success: false as const,
+      error: AUTH_ERRORS.resetExpired,
+      passwordError: null,
+      confirmPasswordError: null,
+    };
+  }
+
+  if (!newPassword.trim()) {
+    return {
+      success: false as const,
+      error: AUTH_ERRORS.required,
+      passwordError: AUTH_ERRORS.required,
+      confirmPasswordError: null,
+    };
+  }
+
+  if (newPassword.length < 6) {
+    return {
+      success: false as const,
+      error: AUTH_ERRORS.passwordMinLength,
+      passwordError: AUTH_ERRORS.passwordMinLength,
+      confirmPasswordError: null,
+    };
+  }
+
+  if (!confirmPassword.trim()) {
+    return {
+      success: false as const,
+      error: AUTH_ERRORS.required,
+      passwordError: null,
+      confirmPasswordError: AUTH_ERRORS.required,
+    };
+  }
+
+  if (newPassword !== confirmPassword) {
+    return {
+      success: false as const,
+      error: AUTH_ERRORS.passwordMismatch,
+      passwordError: null,
+      confirmPasswordError: AUTH_ERRORS.passwordMismatch,
+    };
+  }
+
+  try {
+    await ensureUserSchema();
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const updated = await sql`
+      UPDATE users
+      SET password = ${passwordHash}, updated_at = NOW()
+      WHERE LOWER(email) = ${normalizedEmail}
+        AND UPPER(emp_id) = ${normalizedEmpId}
+      RETURNING id
+    `;
+
+    if (!updated[0]) {
+      return {
+        success: false as const,
+        error: AUTH_ERRORS.invalidForgotDetails,
+        passwordError: null,
+        confirmPasswordError: null,
+      };
+    }
+
+    consumeResetGrant(normalizedEmail, normalizedEmpId);
+
+    return {
+      success: true as const,
+      message: AUTH_ERRORS.passwordResetSuccess,
+      passwordError: null,
+      confirmPasswordError: null,
+    };
+  } catch (error) {
+    console.error("resetPasswordAfterOtp:", error);
+    return {
+      success: false as const,
+      error: "A system error occurred.",
+      passwordError: null,
+      confirmPasswordError: null,
+    };
   }
 }
