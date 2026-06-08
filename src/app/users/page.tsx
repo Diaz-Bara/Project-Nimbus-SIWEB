@@ -1,6 +1,7 @@
 // src/app/users/page.tsx
 import Sidebar from "@/components/dashboard/Sidebar";
 import Topbar from "@/components/dashboard/Topbar";
+import DashboardPageHeader from "@/components/layout/DashboardPageHeader";
 import UserList from "@/components/users/UserList";
 import UserTableSkeleton from "@/components/users/UserSkeleton";
 import UserMetrics from "@/components/users/UserMetrics";
@@ -28,6 +29,11 @@ export default async function UsersPage(props: {
         </div>
 
         <div className="px-6 pb-6 overflow-y-auto">
+          <DashboardPageHeader
+            eyebrow="User Management"
+            title="Users"
+            subtitle="Manage employee accounts, roles, and terminal access."
+          />
 
           {/* HEADER METRICS DENGAN SUSPENSE */}
           <Suspense 

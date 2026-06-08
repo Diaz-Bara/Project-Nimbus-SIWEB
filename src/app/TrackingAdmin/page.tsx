@@ -1,8 +1,11 @@
 import Sidebar from "@/components/dashboard/Sidebar";
 import Topbar from "@/components/dashboard/Topbar";
+import DashboardPageHeader from "@/components/layout/DashboardPageHeader";
 import TrackingTimeline from "@/components/trackingadmin/TrackingTimeline";
 import TrackingSidebar from "@/components/trackingadmin/TrackingSidebar";
 import TrackingHeader from "@/components/trackingadmin/TrackingHeader";
+import AwbNotFoundCard from "@/components/errors/AwbNotFoundCard";
+import { getTrackingByAwb } from "@/lib/actions";
 import { Suspense } from "react";
 
 export default async function TrackingPage(props: {
@@ -12,6 +15,14 @@ export default async function TrackingPage(props: {
 }) {
   const searchParams = await props.searchParams;
   const awb = searchParams?.awb?.trim() || "";
+  let awbNotFound: string | null = null;
+
+  if (awb) {
+    const tracking = await getTrackingByAwb(awb);
+    if (!tracking.success) {
+      awbNotFound = awb;
+    }
+  }
 
   return (
     <div className="h-screen flex bg-gray-100">
@@ -23,11 +34,11 @@ export default async function TrackingPage(props: {
         </div>
 
         <div className="px-6 pb-6 overflow-y-auto">
-          {/* TITLE */}
-          <h1 className="text-xl font-bold text-blue-900">AWB Tracking</h1>
-          <p className="text-sm text-gray-500 mb-6">
-            Track your airway bill precision-timed shipments across our global network
-          </p>
+          <DashboardPageHeader
+            eyebrow="Tracking Logs"
+            title="AWB Tracking"
+            subtitle="Track airway bill shipments across our global network."
+          />
 
           {/* SEARCH + CARD DENGAN SUSPENSE */}
           <Suspense
@@ -48,9 +59,19 @@ export default async function TrackingPage(props: {
             <TrackingHeader awb={awb} />
           </Suspense>
 
-          {awb && (
-            <div className="grid md:grid-cols-3 gap-6">
-              <div className="md:col-span-2">
+          {awbNotFound && (
+            <div className="max-w-lg mx-auto mt-2">
+              <AwbNotFoundCard
+                awb={awbNotFound}
+                backHref="/TrackingAdmin"
+                backLabel="Back to AWB Tracking"
+              />
+            </div>
+          )}
+
+          {awb && !awbNotFound && (
+            <div className="grid md:grid-cols-5 gap-6">
+              <div className="md:col-span-3">
                 <Suspense
                   fallback={
                     <div className="bg-white rounded-xl shadow-sm p-6 h-[400px] animate-pulse flex flex-col gap-8">
@@ -70,7 +91,7 @@ export default async function TrackingPage(props: {
                 </Suspense>
               </div>
 
-              <div className="space-y-6">
+              <div className="md:col-span-2 space-y-6">
                 <Suspense
                   fallback={
                     <>

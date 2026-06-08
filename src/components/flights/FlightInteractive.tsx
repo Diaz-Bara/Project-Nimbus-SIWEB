@@ -1,8 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import {
+  InformationCircleIcon,
+  PencilIcon,
+  TrashIcon,
+} from "@heroicons/react/24/outline";
+import { useRouter } from "next/navigation";
 import FlightCard from "./FlightCard";
-import FlightModal from "./FlightModal";
+import FlightFormModal, { FlightFormData } from "./FlightFormModal";
+import {
+  createFlightAction,
+  updateFlightAction,
+  deleteFlightAction,
+} from "@/lib/actions";
 
 type Flight = {
   id: number;
@@ -10,9 +21,9 @@ type Flight = {
   aircraft: string;
   origin_code: string;
   origin_city: string;
+  departure_time: string;
   destination_code: string;
   destination_city: string;
-  departure_time: string;
   arrival_time: string;
   status: string;
   progress: number;
@@ -20,54 +31,294 @@ type Flight = {
   used_tons: number;
 };
 
-export default function FlightInteractive({ flights }: { flights: Flight[] }) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [modalMode, setModalMode] = useState<"create" | "edit" | "detail">("create");
+export default function FlightInteractive({
+  initialFlights,
+}: {
+  initialFlights: Flight[];
+}) {
+  const router = useRouter();
+  const [flights, setFlights] = useState<Flight[]>(initialFlights);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [selectedFlight, setSelectedFlight] = useState<Flight | null>(null);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  const handleOpen = (mode: "create" | "edit" | "detail", flight?: Flight) => {
-    setModalMode(mode);
-    setSelectedFlight(flight || null);
-    setIsModalOpen(true);
+  useEffect(() => {
+    setFlights(initialFlights);
+  }, [initialFlights]);
+
+  const openCreate = () => {
+    setSelectedFlight(null);
+    setSaveError(null);
+    setIsFormOpen(true);
   };
 
+  const openEdit = (flight: Flight) => {
+    setSelectedFlight(flight);
+    setSaveError(null);
+    setIsFormOpen(true);
+  };
+
+  const openDetail = (flight: Flight) => {
+    setSelectedFlight(flight);
+    setIsDetailOpen(true);
+  };
+
+  const openDelete = (flight: Flight) => {
+    setSelectedFlight(flight);
+    setIsDeleteOpen(true);
+  };
+
+  const handleSave = async (formData: FlightFormData) => {
+    setIsSaving(true);
+    setSaveError(null);
+
+    let result: { success: boolean; error?: string };
+
+    if (selectedFlight?.id) {
+      result = await updateFlightAction(selectedFlight.id, {
+        aircraft: formData.aircraft,
+        origin_code: formData.origin_code,
+        origin_city: formData.origin_city,
+        destination_code: formData.destination_code,
+        destination_city: formData.destination_city,
+        departure_time: formData.departure_time,
+        arrival_time: formData.arrival_time,
+        status: formData.status,
+        capacity_tons: formData.capacity_tons,
+        used_tons: formData.used_tons,
+      });
+    } else {
+      result = await createFlightAction({
+        code: formData.code,
+        aircraft: formData.aircraft,
+        origin_code: formData.origin_code,
+        origin_city: formData.origin_city,
+        destination_code: formData.destination_code,
+        destination_city: formData.destination_city,
+        departure_time: formData.departure_time,
+        arrival_time: formData.arrival_time,
+        status: formData.status,
+        capacity_tons: formData.capacity_tons,
+        used_tons: formData.used_tons,
+      });
+    }
+
+    if (!result.success) {
+      setSaveError(result.error || "Failed to save flight.");
+      setIsSaving(false);
+      return;
+    }
+
+    router.refresh();
+    setIsFormOpen(false);
+    setSelectedFlight(null);
+    setIsSaving(false);
+  };
+
+  const confirmDelete = async () => {
+    if (!selectedFlight) return;
+
+    const previous = flights;
+    setFlights(flights.filter((f) => f.id !== selectedFlight.id));
+
+    const result = await deleteFlightAction(selectedFlight.id);
+    if (!result.success) {
+      setFlights(previous);
+      alert(result.error || "Failed to delete flight.");
+    } else {
+      router.refresh();
+    }
+
+    setIsDeleteOpen(false);
+    setSelectedFlight(null);
+  };
+
+  const formFlightData: FlightFormData | null = selectedFlight
+    ? {
+        id: selectedFlight.id,
+        code: selectedFlight.code,
+        aircraft: selectedFlight.aircraft,
+        origin_code: selectedFlight.origin_code,
+        origin_city: selectedFlight.origin_city,
+        destination_code: selectedFlight.destination_code,
+        destination_city: selectedFlight.destination_city,
+        departure_time: selectedFlight.departure_time,
+        arrival_time: selectedFlight.arrival_time,
+        status: selectedFlight.status,
+        capacity_tons: Number(selectedFlight.capacity_tons),
+        used_tons: Number(selectedFlight.used_tons),
+      }
+    : null;
+
   return (
-    <div className="space-y-4">
-      <div className="flex justify-end mb-2">
-        <button onClick={() => handleOpen("create")} className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-          + New Flight
+    <>
+      <div className="flex justify-between items-center mb-4">
+        <p className="font-semibold text-gray-800">Scheduled Flights</p>
+        <button
+          type="button"
+          onClick={openCreate}
+          className="bg-[#0a327d] hover:bg-blue-900 text-white px-4 py-2 rounded-lg text-sm font-medium transition-colors"
+        >
+          + Add Flight
         </button>
       </div>
 
-      {flights.length === 0 ? (
-        <p className="text-gray-500 italic text-center py-8 bg-white rounded-xl shadow-sm border border-gray-100">No flights found.</p>
-      ) : (
-        flights.map((flight) => (
-          <div key={flight.id} className="flex items-center gap-2 group">
-            <div className="flex-1">
-              <FlightCard flight={flight} />
+      <div className="space-y-4">
+        {flights.length === 0 ? (
+          <p className="text-gray-500 italic">No matching flights found.</p>
+        ) : (
+          flights.map((flight) => (
+            <FlightCard
+              key={flight.id}
+              flight={flight}
+              actions={
+                <>
+                  <button
+                    type="button"
+                    onClick={() => openDetail(flight)}
+                    className="text-[#0a327d] hover:text-blue-800 transition-colors p-1"
+                    title="Detail Flight"
+                  >
+                    <InformationCircleIcon className="w-5 h-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openEdit(flight)}
+                    className="text-blue-500 hover:text-blue-700 transition-colors p-1"
+                    title="Edit Flight"
+                  >
+                    <PencilIcon className="w-5 h-5" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => openDelete(flight)}
+                    className="text-red-500 hover:text-red-700 transition-colors p-1"
+                    title="Delete Flight"
+                  >
+                    <TrashIcon className="w-5 h-5" />
+                  </button>
+                </>
+              }
+            />
+          ))
+        )}
+      </div>
+
+      <FlightFormModal
+        isOpen={isFormOpen}
+        onClose={() => {
+          setIsFormOpen(false);
+          setSelectedFlight(null);
+        }}
+        onSave={handleSave}
+        flightData={isFormOpen && selectedFlight ? formFlightData : null}
+        isSaving={isSaving}
+        errorMessage={saveError}
+      />
+
+      {isDetailOpen && selectedFlight && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-lg animate-in fade-in zoom-in duration-200">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-xl font-semibold text-[#1a2332]">Flight Detail</h3>
+              <button
+                type="button"
+                onClick={() => setIsDetailOpen(false)}
+                className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
+              >
+                &times;
+              </button>
             </div>
-            <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity bg-white p-2 rounded-xl shadow-sm border border-gray-100">
-              <button onClick={() => handleOpen("detail", flight)} className="p-1.5 rounded-md text-gray-400 hover:text-blue-600 hover:bg-blue-50" title="Detail">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-              </button>
-              <button onClick={() => handleOpen("edit", flight)} className="p-1.5 rounded-md text-gray-400 hover:text-amber-600 hover:bg-amber-50" title="Edit">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" /></svg>
-              </button>
-              <button onClick={() => alert(`Delete ${flight.code} triggered`)} className="p-1.5 rounded-md text-gray-400 hover:text-red-600 hover:bg-red-50" title="Delete">
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
+
+            <div className="space-y-3 text-sm">
+              <div className="flex justify-between border-b pb-2">
+                <span className="text-gray-500">Flight Code</span>
+                <span className="font-bold text-blue-700">{selectedFlight.code}</span>
+              </div>
+              <div className="flex justify-between border-b pb-2">
+                <span className="text-gray-500">Aircraft</span>
+                <span className="font-medium">{selectedFlight.aircraft}</span>
+              </div>
+              <div className="flex justify-between border-b pb-2">
+                <span className="text-gray-500">Route</span>
+                <span className="font-medium">
+                  {selectedFlight.origin_code} ({selectedFlight.origin_city}) →{" "}
+                  {selectedFlight.destination_code} ({selectedFlight.destination_city})
+                </span>
+              </div>
+              <div className="flex justify-between border-b pb-2">
+                <span className="text-gray-500">Schedule</span>
+                <span className="font-medium">
+                  {selectedFlight.departure_time} - {selectedFlight.arrival_time}
+                </span>
+              </div>
+              <div className="flex justify-between border-b pb-2">
+                <span className="text-gray-500">Capacity</span>
+                <span className="font-medium">
+                  {selectedFlight.used_tons} / {selectedFlight.capacity_tons} tons
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Status</span>
+                <span
+                  className={`font-semibold ${
+                    selectedFlight.status.toUpperCase() === "ACTIVE"
+                      ? "text-green-600"
+                      : selectedFlight.status.toUpperCase().includes("DELAY")
+                      ? "text-orange-500"
+                      : "text-gray-500"
+                  }`}
+                >
+                  {selectedFlight.status}
+                </span>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end">
+              <button
+                type="button"
+                onClick={() => setIsDetailOpen(false)}
+                className="px-5 py-2 rounded-lg text-sm font-medium text-white bg-[#0a327d] hover:bg-blue-900 transition-colors"
+              >
+                Close
               </button>
             </div>
           </div>
-        ))
+        </div>
       )}
 
-      <FlightModal 
-        isOpen={isModalOpen} 
-        onClose={() => setIsModalOpen(false)} 
-        data={selectedFlight}
-        mode={modalMode}
-      />
-    </div>
+      {isDeleteOpen && selectedFlight && (
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-white rounded-xl shadow-lg p-6 w-full max-w-md">
+            <h3 className="text-lg font-semibold text-gray-800 mb-2">Delete Flight</h3>
+            <p className="text-sm text-gray-600 mb-6">
+              Delete flight <strong>{selectedFlight.code}</strong>? This action cannot be undone.
+            </p>
+            <div className="flex justify-end gap-3">
+              <button
+                type="button"
+                onClick={() => {
+                  setIsDeleteOpen(false);
+                  setSelectedFlight(null);
+                }}
+                className="px-4 py-2 border border-gray-200 rounded-lg text-sm text-gray-600 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmDelete}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-sm"
+              >
+                Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

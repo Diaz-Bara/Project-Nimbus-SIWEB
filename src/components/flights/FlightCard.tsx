@@ -1,3 +1,5 @@
+import { ReactNode } from "react";
+
 type Flight = {
   id: number;
   code: string;
@@ -12,7 +14,13 @@ type Flight = {
   progress: number;
 };
 
-export default function FlightCard({ flight }: { flight: Flight }) {
+export default function FlightCard({
+  flight,
+  actions,
+}: {
+  flight: Flight;
+  actions?: ReactNode;
+}) {
   const status = flight.status.toLowerCase();
   const color =
     status === "active"
@@ -54,6 +62,10 @@ export default function FlightCard({ flight }: { flight: Flight }) {
         <p className="text-xs text-gray-400">{flight.destination_city}</p>
         <p className="text-xs">{flight.arrival_time}</p>
       </div>
+
+      {actions && (
+        <div className="flex items-center gap-1 flex-shrink-0">{actions}</div>
+      )}
     </div>
   );
 }

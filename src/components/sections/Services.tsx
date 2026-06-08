@@ -20,7 +20,7 @@ export default function Services() {
     },
     {
       title: "Shipment Management",
-      desc: "Manage cargo shipments efficiently from pickup through final delivery",
+      desc: "Manage cargo shipments efficiently from intake to final destination",
       icon: ClipboardDocumentCheckIcon,
     },
     {
@@ -29,8 +29,8 @@ export default function Services() {
       icon: BoltIcon,
     },
     {
-      title: "Centralized Operations System",
-      desc: "Monitor all cargo activity in one integrated centralized system",
+      title: "Centralized Operations",
+      desc: "Monitor all cargo activity in one integrated operational system",
       icon: ComputerDesktopIcon,
     },
   ];
@@ -56,9 +56,7 @@ export default function Services() {
                   </div>
 
                   <h3 className="font-semibold mb-2">{item.title}</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    {item.desc}
-                  </p>
+                  <p className="text-sm text-gray-600 leading-relaxed">{item.desc}</p>
                 </div>
               );
             })}
@@ -78,9 +76,7 @@ export default function Services() {
                   </div>
 
                   <h3 className="font-semibold mb-2">{item.title}</h3>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    {item.desc}
-                  </p>
+                  <p className="text-sm text-gray-600 leading-relaxed">{item.desc}</p>
                 </div>
               );
             })}

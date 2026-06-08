@@ -46,7 +46,7 @@ export default function LoginPage() {
       if (result.success) {
         localStorage.setItem(
           "user",
-          JSON.stringify({ email: result.email, role: result.role }),
+          JSON.stringify({ email: result.email, role: result.role })
         );
         router.push("/dashboard");
         router.refresh();
@@ -75,7 +75,7 @@ export default function LoginPage() {
           <input
             id="username"
             type="text"
-            placeholder="admin or operator 1"
+            placeholder="admin or operator"
             aria-invalid={Boolean(usernameError)}
             className={fieldControlClass(Boolean(usernameError), "form")}
             autoComplete="username"

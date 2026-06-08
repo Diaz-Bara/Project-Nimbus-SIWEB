@@ -3,9 +3,7 @@ export default function Contact() {
     <section id="Contact" className="py-20 px-6 bg-white scroll-mt-40">
       <div className="max-w-6xl mx-auto grid md:grid-cols-2 gap-10 items-start">
         <div>
-          <h2 className="text-2xl md:text-3xl font-bold mb-6">
-            Contact Us
-          </h2>
+          <h2 className="text-2xl md:text-3xl font-bold mb-6">Contact Us</h2>
 
           <div className="w-16 h-1 bg-orange-400 mt-2 mb-6 rounded"></div>
 

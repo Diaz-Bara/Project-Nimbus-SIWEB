@@ -1,6 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
+import FormAlert from "@/components/ui/FormAlert";
+import FormField, { fieldControlClass } from "@/components/ui/FormField";
+import { useFormErrors } from "@/hooks/useFormErrors";
+import { FORM_ERRORS } from "@/lib/form-errors";
+import { validateUserForm, type UserField } from "@/lib/validators/user-form";
 
 type User = {
   id?: number;
@@ -38,6 +43,14 @@ export default function UserModal({
     terminal: "",
     status: "ACTIVE",
   });
+  const {
+    fieldErrors,
+    formError,
+    setFormError,
+    setFieldErrorMap,
+    clearFieldError,
+    clearAllErrors,
+  } = useFormErrors<UserField>();
 
   useEffect(() => {
     if (userData) {
@@ -52,14 +65,40 @@ export default function UserModal({
         status: "ACTIVE",
       });
     }
-  }, [userData, isOpen]);
+    clearAllErrors();
+  }, [userData, isOpen, clearAllErrors]);
 
   if (!isOpen) return null;
 
+  const updateField = <K extends keyof User>(key: K, value: User[K]) => {
+    setForm((current) => ({ ...current, [key]: value }));
+    clearFieldError(key as UserField);
+    setFormError(null);
+  };
+
+  const submitForm = async () => {
+    clearAllErrors();
+
+    const errors = validateUserForm(form);
+    if (Object.keys(errors).length > 0) {
+      setFieldErrorMap(errors);
+      return;
+    }
+
+    try {
+      await onSave(form);
+    } catch {
+      setFormError(FORM_ERRORS.saveFailed);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    await onSave(form);
+    await submitForm();
   };
+
+  const inputClass = (field: UserField, extra = "") =>
+    `${fieldControlClass(Boolean(fieldErrors[field]), "form")} ${extra}`.trim();
 
   return (
     <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/40 backdrop-blur-sm">
@@ -79,89 +118,95 @@ export default function UserModal({
           </button>
         </div>
 
+        <form onSubmit={handleSubmit} noValidate>
         <div className="p-6">
-          {errorMessage && (
-            <div className="mb-4 rounded-lg border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700">
-              {errorMessage}
-            </div>
-          )}
+          {(formError || errorMessage) && <FormAlert message={formError || errorMessage || FORM_ERRORS.saveFailed} />}
 
-          <form id="user-form" onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Name</label>
+          <div className="space-y-4">
+            <FormField label="Name" htmlFor="user-name" required error={fieldErrors.name}>
               <input
-                required
+                id="user-name"
                 placeholder="Full Name"
-                className="w-full border border-gray-200 p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition text-sm"
+                aria-invalid={Boolean(fieldErrors.name)}
+                className={inputClass("name")}
                 value={form.name}
-                onChange={(e) => setForm({ ...form, name: e.target.value })}
+                onChange={(e) => updateField("name", e.target.value)}
               />
-            </div>
+            </FormField>
 
-            <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Email</label>
+            <FormField label="Email" htmlFor="user-email" required error={fieldErrors.email}>
               <input
-                required
-                type="email"
+                id="user-email"
+                type="text"
+                inputMode="email"
                 placeholder="email@nimbus.cargo"
-                className="w-full border border-gray-200 p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition text-sm"
+                aria-invalid={Boolean(fieldErrors.email)}
+                className={inputClass("email")}
                 value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
+                onChange={(e) => updateField("email", e.target.value)}
               />
-            </div>
+            </FormField>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Employee ID</label>
+              <FormField
+                label="Employee ID"
+                htmlFor="user-emp-id"
+                required
+                error={fieldErrors.empId}
+              >
                 <input
-                  required
+                  id="user-emp-id"
                   placeholder="e.g. ADM-99210"
-                  className="w-full border border-gray-200 p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition text-sm uppercase"
+                  aria-invalid={Boolean(fieldErrors.empId)}
+                  className={inputClass("empId", "uppercase")}
                   value={form.empId}
-                  onChange={(e) => setForm({ ...form, empId: e.target.value.toUpperCase() })}
+                  onChange={(e) => updateField("empId", e.target.value.toUpperCase())}
                 />
-              </div>
+              </FormField>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Terminal Access</label>
+              <FormField
+                label="Terminal Access"
+                htmlFor="user-terminal"
+                required
+                error={fieldErrors.terminal}
+              >
                 <input
-                  required
+                  id="user-terminal"
                   placeholder="e.g. Global Access"
-                  className="w-full border border-gray-200 p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition text-sm"
+                  aria-invalid={Boolean(fieldErrors.terminal)}
+                  className={inputClass("terminal")}
                   value={form.terminal}
-                  onChange={(e) => setForm({ ...form, terminal: e.target.value })}
+                  onChange={(e) => updateField("terminal", e.target.value)}
                 />
-              </div>
+              </FormField>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Role</label>
+              <FormField label="Role" htmlFor="user-role" required>
                 <select
-                  required
-                  className="w-full border border-gray-200 p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition text-sm bg-white cursor-pointer"
+                  id="user-role"
+                  className={`${inputClass("role")} bg-white cursor-pointer`}
                   value={form.role}
-                  onChange={(e) => setForm({ ...form, role: e.target.value })}
+                  onChange={(e) => updateField("role", e.target.value)}
                 >
                   <option value="ADMIN">ADMIN</option>
                   <option value="OPERATOR">OPERATOR</option>
                 </select>
-              </div>
+              </FormField>
 
-              <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Status</label>
+              <FormField label="Status" htmlFor="user-status" required>
                 <select
-                  required
-                  className="w-full border border-gray-200 p-2.5 rounded-lg outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition text-sm bg-white cursor-pointer"
+                  id="user-status"
+                  className={`${inputClass("status")} bg-white cursor-pointer`}
                   value={form.status}
-                  onChange={(e) => setForm({ ...form, status: e.target.value })}
+                  onChange={(e) => updateField("status", e.target.value)}
                 >
                   <option value="ACTIVE">ACTIVE</option>
                   <option value="INACTIVE">INACTIVE</option>
                 </select>
-              </div>
+              </FormField>
             </div>
-          </form>
+          </div>
         </div>
 
         <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex justify-end gap-3">
@@ -174,14 +219,15 @@ export default function UserModal({
             Cancel
           </button>
           <button
-            type="submit"
-            form="user-form"
+            type="button"
+            onClick={() => void submitForm()}
             disabled={isSaving}
             className="px-6 py-2 bg-[#1a4bba] hover:bg-blue-800 text-white rounded-lg text-sm font-medium transition-colors shadow-sm disabled:opacity-70 disabled:cursor-not-allowed"
           >
             {isSaving ? "Saving..." : "Save"}
           </button>
         </div>
+        </form>
       </div>
     </div>
   );

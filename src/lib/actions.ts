@@ -1200,3 +1200,91 @@ export async function resetPasswordAfterOtp(
     };
   }
 }
+
+export async function createFlightAction(formData: {
+  code: string;
+  aircraft: string;
+  origin_code: string;
+  origin_city: string;
+  destination_code: string;
+  destination_city: string;
+  departure_time: string;
+  arrival_time: string;
+  status: string;
+  capacity_tons: number;
+  used_tons: number;
+}) {
+  await ensureFlightSchema();
+  try {
+    await sql`
+      INSERT INTO flights (
+        code, aircraft, origin_code, origin_city,
+        destination_code, destination_city, departure_time,
+        arrival_time, status, progress, capacity_tons, used_tons
+      ) VALUES (
+        ${formData.code}, ${formData.aircraft}, ${formData.origin_code},
+        ${formData.origin_city}, ${formData.destination_code}, ${formData.destination_city},
+        ${formData.departure_time}, ${formData.arrival_time}, ${formData.status},
+        0, ${formData.capacity_tons}, ${formData.used_tons}
+      )
+    `;
+    revalidatePath("/flights");
+    return { success: true };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("unique")) {
+      return { success: false, error: "Flight code is already in use." };
+    }
+    return { success: false, error: "Failed to create flight." };
+  }
+}
+
+export async function updateFlightAction(
+  id: number,
+  formData: {
+    aircraft: string;
+    origin_code: string;
+    origin_city: string;
+    destination_code: string;
+    destination_city: string;
+    departure_time: string;
+    arrival_time: string;
+    status: string;
+    capacity_tons: number;
+    used_tons: number;
+  },
+) {
+  await ensureFlightSchema();
+  try {
+    await sql`
+      UPDATE flights SET
+        aircraft = ${formData.aircraft},
+        origin_code = ${formData.origin_code},
+        origin_city = ${formData.origin_city},
+        destination_code = ${formData.destination_code},
+        destination_city = ${formData.destination_city},
+        departure_time = ${formData.departure_time},
+        arrival_time = ${formData.arrival_time},
+        status = ${formData.status},
+        capacity_tons = ${formData.capacity_tons},
+        used_tons = ${formData.used_tons},
+        updated_at = NOW()
+      WHERE id = ${id}
+    `;
+    revalidatePath("/flights");
+    return { success: true };
+  } catch {
+    return { success: false, error: "Failed to update flight." };
+  }
+}
+
+export async function deleteFlightAction(id: number) {
+  await ensureFlightSchema();
+  try {
+    await sql`DELETE FROM flights WHERE id = ${id}`;
+    revalidatePath("/flights");
+    return { success: true };
+  } catch {
+    return { success: false, error: "Failed to delete flight." };
+  }
+}

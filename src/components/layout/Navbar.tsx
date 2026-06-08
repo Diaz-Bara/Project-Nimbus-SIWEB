@@ -9,15 +9,14 @@ export default function Navbar() {
 
   const menu = [
     { name: "Home", path: "/" },
-    { name: "About", path: "/Tentang" },
-    { name: "Services", path: "/Layanan" },
-    { name: "Clients", path: "/Klien" },
-    { name: "Contact", path: "/Kontak" },
+    { name: "About", path: "/about" },
+    { name: "Services", path: "/services" },
+    { name: "Clients", path: "/clients" },
+    { name: "Contact", path: "/contact" },
   ];
 
   return (
     <nav className="fixed top-0 left-0 w-full z-50 bg-white shadow-md px-6 py-4 flex justify-between items-center">
-      
       <div className="flex items-center gap-2">
         <Image src="/logo.png" alt="logo" width={40} height={40} />
         <h1 className="font-bold whitespace-nowrap">

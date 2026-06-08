@@ -10,6 +10,7 @@ export default function Clients() {
   return (
     <section id="Clients" className="py-20 px-6 bg-gray-100">
       <div className="max-w-6xl mx-auto text-center">
+        
         <h2 className="text-2xl md:text-3xl font-bold mb-10">
           Our Clients & Partners
         </h2>
@@ -26,6 +27,7 @@ export default function Clients() {
             </div>
           ))}
         </div>
+
       </div>
     </section>
   );

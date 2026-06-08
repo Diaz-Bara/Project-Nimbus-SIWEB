@@ -28,12 +28,12 @@ export default function Hero() {
           </h1>
 
           <p className="mb-4 font-semibold text-gray-200">
-            Fast, Secure, and Reliable Air Cargo Solutions
+            Fast, Secure, and Reliable Air Cargo Delivery
           </p>
 
           <p className="mb-6 text-gray-300 text-sm max-w-md">
-            We deliver professional air cargo logistics with broad coverage
-            across Indonesia and international destinations.
+            We deliver professional air cargo logistics with broad coverage across
+            Indonesia and international routes.
           </p>
 
           <Link

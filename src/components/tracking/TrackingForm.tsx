@@ -6,7 +6,6 @@ import FormField, { fieldControlClass } from "@/components/ui/FormField";
 import { FORM_ERRORS } from "@/lib/form-errors";
 import { getTrackingByAwb } from "@/lib/actions";
 import AwbNotFoundCard from "@/components/errors/AwbNotFoundCard";
-import FormAlert from "@/components/ui/FormAlert";
 import TrackingResult, {
   type TrackingHistoryItem,
   type TrackingShipment,
@@ -27,7 +26,6 @@ export default function TrackingForm() {
   const [isSearching, setIsSearching] = useState(false);
   const [awbError, setAwbError] = useState<string | null>(null);
   const [notFoundAwb, setNotFoundAwb] = useState<string | null>(null);
-  const [serverError, setServerError] = useState<string | null>(null);
 
   const runTrack = useCallback(
     async (value: string) => {
@@ -40,26 +38,18 @@ export default function TrackingForm() {
 
       setAwbError(null);
       setNotFoundAwb(null);
-      setServerError(null);
       setIsSearching(true);
+      const tracking = (await getTrackingByAwb(trimmedAwb)) as TrackingResponse;
 
-      try {
-        const tracking = (await getTrackingByAwb(trimmedAwb)) as TrackingResponse;
-
-        if (!tracking.success) {
-          setResult(null);
-          setNotFoundAwb(trimmedAwb);
-          return;
-        }
-
-        setResult(tracking);
-      } catch {
+      if (!tracking.success) {
         setResult(null);
-        setNotFoundAwb(null);
-        setServerError(FORM_ERRORS.network);
-      } finally {
+        setNotFoundAwb(trimmedAwb);
         setIsSearching(false);
+        return;
       }
+
+      setResult(tracking);
+      setIsSearching(false);
     },
     [],
   );
@@ -119,12 +109,6 @@ export default function TrackingForm() {
               </div>
             </FormField>
           </form>
-
-          {serverError && (
-            <div className="w-full mt-4">
-              <FormAlert message={serverError} />
-            </div>
-          )}
 
           {notFoundAwb && (
             <div className="w-full mt-6">
