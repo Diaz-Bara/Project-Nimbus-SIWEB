@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import FormField, { fieldControlClass } from "@/components/ui/FormField";
-import { FORM_ERRORS } from "@/lib/form-errors";
+import { validateTrackingAwb } from "@/lib/validators/tracking-form";
 import { getTrackingByAwb } from "@/lib/actions";
 import AwbNotFoundCard from "@/components/errors/AwbNotFoundCard";
 import TrackingResult, {
@@ -29,13 +29,15 @@ export default function TrackingForm() {
 
   const runTrack = useCallback(
     async (value: string) => {
-      const trimmedAwb = value.trim();
-      if (!trimmedAwb) {
-        setAwbError(FORM_ERRORS.required);
+      const validationError = validateTrackingAwb(value);
+      if (validationError) {
+        setAwbError(validationError);
         setResult(null);
+        setNotFoundAwb(null);
         return;
       }
 
+      const trimmedAwb = value.trim();
       setAwbError(null);
       setNotFoundAwb(null);
       setIsSearching(true);
@@ -69,6 +71,13 @@ export default function TrackingForm() {
 
   const handleTrack = async (e: React.FormEvent) => {
     e.preventDefault();
+    const validationError = validateTrackingAwb(awb);
+    if (validationError) {
+      setAwbError(validationError);
+      setResult(null);
+      setNotFoundAwb(null);
+      return;
+    }
     await runTrack(awb);
   };
 

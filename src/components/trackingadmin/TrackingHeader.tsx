@@ -1,4 +1,5 @@
 import { fetchRecentShipments } from "@/lib/actions";
+import TrackingAdminSearchForm from "@/components/trackingadmin/TrackingAdminSearchForm";
 
 export default async function TrackingHeader({ awb }: { awb: string }) {
   const recent = await fetchRecentShipments(1);
@@ -8,17 +9,7 @@ export default async function TrackingHeader({ awb }: { awb: string }) {
     <div className="grid md:grid-cols-3 gap-4 mb-6">
       <div className="md:col-span-2 bg-white p-4 rounded-xl shadow-sm">
         <p className="text-xs text-gray-400 mb-2">ENTER TRACKING NUMBER</p>
-        <form action="/TrackingAdmin" className="flex gap-2">
-          <input
-            name="awb"
-            defaultValue={awb}
-            placeholder="Enter AWB number"
-            className="flex-1 border border-gray-200 px-4 py-2 rounded-lg text-sm"
-          />
-          <button type="submit" className="bg-blue-700 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-800 transition">
-            Track Shipment
-          </button>
-        </form>
+        <TrackingAdminSearchForm defaultAwb={awb} />
         {recentAwb && (
           <p className="text-xs text-gray-400 mt-2">
             Recent:{" "}
