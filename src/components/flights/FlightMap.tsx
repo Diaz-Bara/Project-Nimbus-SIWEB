@@ -1,10 +1,14 @@
-export default async function FlightMap() {
-  // Efek delay 1.5 detik
-  await new Promise((resolve) => setTimeout(resolve, 1500));
+import {
+  fetchFlightNetworkCities,
+  fetchFlightsForNetworkMap,
+} from "@/lib/actions";
+import FlightMapDynamic from "./FlightMapDynamic";
 
-  return (
-    <div className="bg-white p-4 rounded-xl shadow-sm h-64 flex items-center justify-center text-gray-400">
-      🌍 Live Global Network (Map Placeholder)
-    </div>
-  );
+export default async function FlightMap() {
+  const [flights, cities] = await Promise.all([
+    fetchFlightsForNetworkMap(),
+    fetchFlightNetworkCities(),
+  ]);
+
+  return <FlightMapDynamic flights={flights} cities={cities} />;
 }

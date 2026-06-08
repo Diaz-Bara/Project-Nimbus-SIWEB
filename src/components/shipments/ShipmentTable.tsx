@@ -67,7 +67,7 @@ export default function ShipmentTable({
                 className={
                   item.status === "In Transit"
                     ? "text-blue-600 font-medium"
-                    : item.status === "Pending QC"
+                    : item.status === "Scheduled"
                     ? "text-orange-500 font-medium"
                     : "text-gray-500 font-medium"
                 }

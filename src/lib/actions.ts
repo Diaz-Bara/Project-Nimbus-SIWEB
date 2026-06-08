@@ -3,12 +3,32 @@
 import postgres from 'postgres';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
-import { signIn } from '@/auth';
-import { AuthError } from 'next-auth';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
+import { getPasswordForUser, resolveAccountEmail } from '@/lib/user-credentials';
+import { AUTH_ERRORS } from '@/lib/auth-credentials';
+import {
+  createOtp,
+  verifyOtpAndGrantReset,
+  hasResetGrant,
+  consumeResetGrant,
+} from '@/lib/otp-store';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
+export { sql };
 const ITEMS_PER_PAGE = 4;
+
+export async function getNextAwb(): Promise<string> {
+  const result = await sql`SELECT COUNT(*)::int AS count FROM shipments`;
+  const count = result[0]?.count || 0;
+  const nextNum = count + 1;
+  return `AWB-${String(nextNum).padStart(3, '0')}`;
+}
+
+const SERVICE_RATES: Record<string, number> = {
+  "Express Priority": 50000,
+  "Standard Cargo": 30000,
+  "Economy Cargo": 20000,
+};
 
 type UserFormData = {
   name: string;
@@ -102,23 +122,9 @@ async function ensureUserSchema() {
   await sql`UPDATE users SET role = UPPER(role) WHERE role IS NOT NULL`;
   await sql`UPDATE users SET status = UPPER(status) WHERE status IS NOT NULL`;
 
-  const seedState = await sql`
-    SELECT
-      COUNT(*)::int AS total,
-      COUNT(*) FILTER (WHERE emp_id IS NOT NULL)::int AS with_emp_id
-    FROM users
-  `;
-
-  if (
-    Number(seedState[0]?.total || 0) >= userSeedData.length &&
-    Number(seedState[0]?.with_emp_id || 0) >= userSeedData.length
-  ) {
-    return;
-  }
-
-  const defaultHash = await bcrypt.hash("password123", 10);
-
   for (const user of userSeedData) {
+    const passwordHash = await bcrypt.hash(getPasswordForUser(user.email), 10);
+
     await sql`
       INSERT INTO users (
         name,
@@ -134,7 +140,7 @@ async function ensureUserSchema() {
       VALUES (
         ${user.name},
         ${user.email},
-        ${defaultHash},
+        ${passwordHash},
         ${user.role},
         ${user.empId},
         ${user.terminal},
@@ -144,7 +150,7 @@ async function ensureUserSchema() {
       )
       ON CONFLICT (email) DO UPDATE SET
         name = EXCLUDED.name,
-        password = COALESCE(users.password, EXCLUDED.password),
+        password = EXCLUDED.password,
         role = EXCLUDED.role,
         emp_id = EXCLUDED.emp_id,
         terminal = EXCLUDED.terminal,
@@ -326,10 +332,8 @@ async function ensureCargoSchema() {
   }
 
   await sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS sender_name TEXT`;
-  await sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS pieces INT DEFAULT 1`;
-  await sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS item_type TEXT`;
-  await sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS vehicle_type TEXT`;
-  await sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()`;
+    await sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS item_type TEXT`;
+    await sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()`;
   await sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()`;
   await sql`ALTER TABLE shipment_details ADD COLUMN IF NOT EXISTS phone_number TEXT`;
 
@@ -348,21 +352,7 @@ async function ensureCargoSchema() {
 // ==========================================
 // 1. AUTENTIKASI (LOGIN)
 // ==========================================
-export async function authenticate(prevState: string | undefined, formData: FormData) {
-  try {
-    await signIn('credentials', formData);
-  } catch (error) {
-    if (error instanceof AuthError) {
-      switch (error.type) {
-        case 'CredentialsSignin':
-          return 'Email atau password salah.';
-        default:
-          return 'Terjadi kesalahan sistem.';
-      }
-    }
-    throw error;
-  }
-}
+/* moved */
 
 export async function fetchUsers(query: string, currentPage: number) {
   await ensureUserSchema();
@@ -475,11 +465,11 @@ export async function saveUserAction(userData: UserFormData, id?: number) {
   await ensureUserSchema();
 
   const UserSchema = z.object({
-    name: z.string().min(1, "Nama wajib diisi."),
-    email: z.string().email("Email tidak valid."),
-    empId: z.string().min(1, "Employee ID wajib diisi."),
+    name: z.string().min(1, "Name is required."),
+    email: z.string().email("Invalid email address."),
+    empId: z.string().min(1, "Employee ID is required."),
     role: z.enum(["ADMIN", "OPERATOR"]),
-    terminal: z.string().min(1, "Terminal wajib diisi."),
+    terminal: z.string().min(1, "Terminal is required."),
     status: z.enum(["ACTIVE", "INACTIVE"]),
   });
 
@@ -493,7 +483,7 @@ export async function saveUserAction(userData: UserFormData, id?: number) {
   if (!parsed.success) {
     return {
       success: false,
-      error: "Form user belum lengkap atau formatnya tidak sesuai.",
+      error: "The user form is incomplete or contains invalid values.",
     };
   }
 
@@ -546,7 +536,7 @@ export async function saveUserAction(userData: UserFormData, id?: number) {
     console.error("Save user error:", error);
     return {
       success: false,
-      error: "Gagal menyimpan user ke database. Periksa email agar tidak duplikat.",
+      error: "Failed to save user. Check that the email is not duplicated.",
     };
   }
 }
@@ -555,23 +545,20 @@ export async function saveUserAction(userData: UserFormData, id?: number) {
 // 2. ZOD VALIDATION SCHEMA (ERROR HANDLING TEXT)
 // ==========================================
 const ShipmentSchema = z.object({
-  awb: z.string().min(1, "AWB tidak boleh kosong."),
-  sender_name: z.string().min(1, "Nama pengirim wajib diisi."),
-  recipient_name: z.string().min(1, "Nama penerima wajib diisi."),
-  weight: z.coerce.number().gt(0, "Berat harus lebih dari 0."),
-  pieces: z.coerce.number().int().gt(0, "Jumlah pieces harus lebih dari 0."),
-  price: z.coerce.number().gte(0, "Tarif pengiriman tidak boleh negatif."),
-  status: z.string().min(1, "Status wajib dipilih."),
-  shipping_date: z.string().min(1, "Tanggal kirim wajib diisi."),
-  service_level: z.string().min(1, "Jenis pengiriman wajib dipilih."),
-  item_type: z.string().min(1, "Jenis barang wajib diisi."),
-  vehicle_type: z.string().min(1, "Jenis kendaraan wajib diisi."),
-  description: z.string().min(1, "Deskripsi wajib diisi."),
-  origin: z.string().min(1, "Kota asal wajib diisi."),
-  destination: z.string().min(1, "Kota tujuan wajib diisi."),
+  awb: z.string().min(1, "AWB cannot be empty."),
+  sender_name: z.string().min(1, "Sender name is required."),
+  recipient_name: z.string().min(1, "Recipient name is required."),
+  weight: z.coerce.number().gt(0, "Weight must be greater than 0."),
+      status: z.string().min(1, "Status is required."),
+  shipping_date: z.string().min(1, "Shipping date is required."),
+  service_level: z.string().min(1, "Service level is required."),
+  item_type: z.string().min(1, "Item type is required."),
+    description: z.string().min(1, "Description is required."),
+  origin: z.string().min(1, "Origin city is required."),
+  destination: z.string().min(1, "Destination city is required."),
   phone_number: z
     .string()
-    .regex(/^[0-9+ -]{8,15}$/, "Nomor telepon harus 8-15 digit/karakter.")
+    .regex(/^[0-9+ -]{8,15}$/, "Phone number must be 8-15 digits/characters.")
 });
 
 // ==========================================
@@ -587,15 +574,13 @@ export async function fetchShipments(query: string, currentPage: number) {
         s.awb,
         COALESCE(s.sender_name, '') AS sender_name,
         s.weight,
-        COALESCE(s.pieces, 1) AS pieces,
-        COALESCE(s.price, 0) AS price,
+                COALESCE(s.price, 0) AS price,
         s.status,
         s.shipping_date,
         s.service_level,
         s.description,
         COALESCE(s.item_type, '') AS item_type,
-        COALESCE(s.vehicle_type, '') AS vehicle_type,
-        sd.origin,
+                sd.origin,
         sd.destination,
         sd.recipient_name,
         sd.phone_number
@@ -648,15 +633,13 @@ export async function fetchShipmentById(id: number) {
         s.awb,
         COALESCE(s.sender_name, '') AS sender_name,
         s.weight,
-        COALESCE(s.pieces, 1) AS pieces,
-        COALESCE(s.price, 0) AS price,
+                COALESCE(s.price, 0) AS price,
         s.status,
         s.shipping_date,
         s.service_level,
         s.description,
         COALESCE(s.item_type, '') AS item_type,
-        COALESCE(s.vehicle_type, '') AS vehicle_type,
-        sd.origin,
+                sd.origin,
         sd.destination,
         sd.recipient_name,
         sd.phone_number
@@ -680,18 +663,19 @@ export async function fetchShipmentStats() {
       SELECT
         COUNT(*)::int AS total,
         COUNT(*) FILTER (WHERE status ILIKE '%transit%')::int AS in_transit,
+        COUNT(*) FILTER (WHERE status ILIKE '%deliver%')::int AS delivered,
         COUNT(*) FILTER (WHERE status ILIKE '%cancel%')::int AS canceled
       FROM shipments
     `;
-
     return {
       total: Number(data[0]?.total || 0),
       inTransit: Number(data[0]?.in_transit || 0),
+      delivered: Number(data[0]?.delivered || 0),
       canceled: Number(data[0]?.canceled || 0),
     };
   } catch (error) {
     console.error("Fetch shipment stats error:", error);
-    return { total: 0, inTransit: 0, canceled: 0 };
+    return { total: 0, inTransit: 0, delivered: 0, canceled: 0 };
   }
 }
 
@@ -709,6 +693,63 @@ export async function fetchRecentShipments(limit = 5) {
     return data as any[];
   } catch (error) {
     console.error("Fetch recent shipments error:", error);
+    return [];
+  }
+}
+
+export async function fetchFlightNetworkCities() {
+  await ensureFlightSchema();
+
+  try {
+    const rows = await sql`
+      SELECT
+        code,
+        MAX(city) AS city
+      FROM (
+        SELECT origin_code AS code, origin_city AS city
+        FROM flights
+        WHERE origin_code IS NOT NULL AND origin_city IS NOT NULL
+        UNION ALL
+        SELECT destination_code AS code, destination_city AS city
+        FROM flights
+        WHERE destination_code IS NOT NULL AND destination_city IS NOT NULL
+      ) airports
+      GROUP BY code
+      ORDER BY city ASC, code ASC
+    `;
+
+    return rows.map((row) => ({
+      code: String(row.code),
+      city: String(row.city),
+    }));
+  } catch (error) {
+    console.error("Fetch flight network cities error:", error);
+    return [];
+  }
+}
+
+export async function fetchFlightsForNetworkMap() {
+  await ensureFlightSchema();
+
+  try {
+    const data = await sql`
+      SELECT
+        id,
+        code,
+        COALESCE(status, 'SCHEDULED') AS status,
+        origin_code,
+        origin_city,
+        destination_code,
+        destination_city
+      FROM flights
+      WHERE origin_code IS NOT NULL
+        AND destination_code IS NOT NULL
+      ORDER BY id ASC
+    `;
+
+    return data as any[];
+  } catch (error) {
+    console.error("Fetch flights for network map error:", error);
     return [];
   }
 }
@@ -788,9 +829,11 @@ export async function fetchDashboardFlights(limit = 3) {
         COALESCE(status, 'SCHEDULED') AS status,
         TO_CHAR(COALESCE(departure_time, TIME '08:00'), 'HH24:MI') AS departure_time,
         TO_CHAR(COALESCE(arrival_time, TIME '10:00'), 'HH24:MI') AS arrival_time,
-        COALESCE(origin_code, 'CGK') AS origin_code,
-        COALESCE(destination_code, 'SIN') AS destination_code
+        origin_code,
+        destination_code
       FROM flights
+      WHERE origin_code IS NOT NULL
+        AND destination_code IS NOT NULL
       ORDER BY
         CASE
           WHEN status ILIKE 'ACTIVE' THEN 1
@@ -839,101 +882,99 @@ export async function fetchFlightStats() {
   }
 }
 
-export async function saveShipment(formData: any, isUpdate: boolean, id?: number) {
-  await ensureCargoSchema();
+export async function saveShipment(formData: any, isUpdate = false, id?: number) {
+  const SERVICE_RATES: Record<string, number> = {
+    "Express Priority": 50000,
+    "Standard Cargo": 30000,
+    "Economy Cargo": 20000,
+  };
+
+  // Enforce backend price calculation
+  const weight = Number(formData.weight) || 0;
+  const serviceLevel = formData.service_level || "Express Priority";
+  const rate = SERVICE_RATES[serviceLevel] || 0;
+  const price = weight * rate;
+
+  let awb = formData.awb;
+  if (!isUpdate) {
+    // Auto-generate AWB if not provided
+    if (!awb) {
+      const result = await sql`SELECT COUNT(*)::int AS count FROM shipments`;
+      const count = result[0]?.count || 0;
+      awb = `AWB-${String(count + 1).padStart(3, '0')}`;
+    }
+  }
+
   try {
-    // Mengecek kelengkapan dan tipe data form menggunakan Zod
-    const validatedData = ShipmentSchema.safeParse(formData);
-    
-    // UGD: Pesan error form tidak lengkap/tipe tidak sesuai
-    if (!validatedData.success) {
-      console.error(validatedData.error.flatten());
-      return { success: false, error: "Form tidak lengkap atau tipe data tidak sesuai DB. Mohon periksa kembali input Anda." };
-    }
+    await sql.begin(async (sql) => {
+      if (isUpdate && id) {
+        await sql`
+          UPDATE shipments 
+          SET
+            sender_name = ${formData.sender_name},
+            weight = ${weight},
+            price = ${price},
+            status = ${formData.status},
+            shipping_date = ${formData.shipping_date},
+            service_level = ${serviceLevel},
+            description = ${formData.description},
+            item_type = ${formData.item_type || ''},
+            updated_at = NOW()
+          WHERE id = ${id}
+        `;
+        await sql`
+          UPDATE shipment_details 
+          SET
+            origin = ${formData.origin},
+            destination = ${formData.destination},
+            recipient_name = ${formData.recipient_name},
+            phone_number = ${formData.phone_number}
+          WHERE shipment_id = ${id}
+        `;
+      } else {
+        const newShipment = await sql`
+          INSERT INTO shipments (
+            awb,
+            customer_id,
+            flight_id,
+            sender_name,
+            weight,
+            price,
+            status,
+            shipping_date,
+            service_level,
+            description,
+            item_type
+          )
+          VALUES (
+            ${awb},
+            1,
+            1,
+            ${formData.sender_name},
+            ${weight},
+            ${price},
+            ${formData.status || 'In Transit'},
+            ${formData.shipping_date},
+            ${serviceLevel},
+            ${formData.description || ''},
+            ${formData.item_type || ''}
+          )
+          RETURNING id
+        `;
+        const newId = newShipment[0].id;
+        
+        await sql`
+          INSERT INTO shipment_details (shipment_id, origin, destination, recipient_name, phone_number)
+          VALUES (${newId}, ${formData.origin}, ${formData.destination}, ${formData.recipient_name}, ${formData.phone_number})
+        `;
+      }
+    });
 
-    if (isUpdate && id) {
-      await sql`
-        UPDATE shipments 
-        SET
-          awb = ${formData.awb},
-          sender_name = ${formData.sender_name},
-          weight = ${Number(formData.weight)},
-          pieces = ${Number(formData.pieces)},
-          price = ${Number(formData.price)},
-          status = ${formData.status},
-          shipping_date = ${formData.shipping_date},
-          service_level = ${formData.service_level},
-          description = ${formData.description},
-          item_type = ${formData.item_type},
-          vehicle_type = ${formData.vehicle_type},
-          updated_at = NOW()
-        WHERE id = ${id}
-      `;
-      await sql`
-        UPDATE shipment_details 
-        SET
-          origin = ${formData.origin},
-          destination = ${formData.destination},
-          recipient_name = ${formData.recipient_name},
-          phone_number = ${formData.phone_number}
-        WHERE shipment_id = ${id}
-      `;
-
-      await sql`
-        INSERT INTO tracking_logs (shipment_id, status, location, note)
-        VALUES (${id}, ${formData.status}, ${formData.origin}, 'Shipment data updated')
-      `;
-    } else {
-      const newShipment = await sql`
-        INSERT INTO shipments (
-          awb,
-          customer_id,
-          flight_id,
-          sender_name,
-          weight,
-          pieces,
-          price,
-          status,
-          shipping_date,
-          service_level,
-          description,
-          item_type,
-          vehicle_type
-        )
-        VALUES (
-          ${formData.awb},
-          1,
-          1,
-          ${formData.sender_name},
-          ${Number(formData.weight)},
-          ${Number(formData.pieces)},
-          ${Number(formData.price)},
-          ${formData.status},
-          ${formData.shipping_date},
-          ${formData.service_level},
-          ${formData.description},
-          ${formData.item_type},
-          ${formData.vehicle_type}
-        )
-        RETURNING id
-      `;
-      const newId = newShipment[0].id;
-      
-      await sql`
-        INSERT INTO shipment_details (shipment_id, origin, destination, recipient_name, phone_number)
-        VALUES (${newId}, ${formData.origin}, ${formData.destination}, ${formData.recipient_name}, ${formData.phone_number})
-      `;
-
-      await sql`
-        INSERT INTO tracking_logs (shipment_id, status, location, note)
-        VALUES (${newId}, ${formData.status}, ${formData.origin}, 'Shipment created')
-      `;
-    }
-    revalidatePath('/shipments');
+    revalidatePath("/shipments");
     return { success: true };
   } catch (error) {
-    console.error("Database Error:", error);
-    return { success: false, error: "Gagal menyimpan data ke database." };
+    console.error("Save shipment error:", error);
+    return { success: false, error: "Failed to save shipment data." };
   }
 }
 
@@ -945,7 +986,7 @@ export async function deleteShipmentAction(id: number) {
     return { success: true };
   } catch (error) {
     console.error("Delete shipment error:", error);
-    return { success: false, error: "Gagal menghapus shipment." };
+    return { success: false, error: "Failed to delete shipment." };
   }
 }
 
@@ -960,18 +1001,29 @@ export async function getTrackingByAwb(awb: string) {
         s.status,
         s.service_level,
         s.weight,
-        s.pieces,
+        COALESCE(s.price, 0) AS price,
+        s.shipping_date,
+        s.description,
+        COALESCE(s.item_type, '') AS item_type,
+        s.created_at,
         sd.origin,
         sd.destination,
-        sd.recipient_name
+        sd.recipient_name,
+        sd.phone_number,
+        f.code AS flight_code,
+        f.aircraft AS flight_aircraft,
+        f.origin_code AS flight_origin,
+        f.destination_code AS flight_destination,
+        f.status AS flight_status
       FROM shipments s
       JOIN shipment_details sd ON s.id = sd.shipment_id
+      LEFT JOIN flights f ON s.flight_id = f.id
       WHERE LOWER(s.awb) = LOWER(${awb})
       LIMIT 1
     `;
 
     if (!shipment[0]) {
-      return { success: false, error: "AWB tidak ditemukan." };
+      return { success: false, error: "AWB not found." };
     }
 
     const history = await sql`
@@ -993,7 +1045,7 @@ export async function getTrackingByAwb(awb: string) {
     };
   } catch (error) {
     console.error("Tracking error:", error);
-    return { success: false, error: "Gagal mengambil data tracking." };
+    return { success: false, error: "Failed to fetch tracking data." };
   }
 }
 
@@ -1027,5 +1079,271 @@ export async function fetchTrackingOverview() {
   } catch (error) {
     console.error("Fetch tracking overview error:", error);
     return { shipment: null, history: [] };
+  }
+}
+
+export async function requestPasswordOtp(email: string, empId: string) {
+  const normalizedEmail = resolveAccountEmail(email).toLowerCase();
+  const normalizedEmpId = empId.trim().toUpperCase();
+
+  if (!normalizedEmail || !normalizedEmpId) {
+    return {
+      success: false as const,
+      error: AUTH_ERRORS.required,
+      emailError: !normalizedEmail ? AUTH_ERRORS.required : null,
+      empIdError: !normalizedEmpId ? AUTH_ERRORS.required : null,
+    };
+  }
+
+  try {
+    await ensureUserSchema();
+    const rows = await sql`
+      SELECT email, emp_id
+      FROM users
+      WHERE LOWER(email) = ${normalizedEmail}
+        AND UPPER(emp_id) = ${normalizedEmpId}
+      LIMIT 1
+    `;
+    const matchedUser = rows[0];
+
+    if (!matchedUser) {
+      return {
+        success: false as const,
+        error: AUTH_ERRORS.invalidForgotDetails,
+        emailError: AUTH_ERRORS.invalidForgotDetails,
+        empIdError: null,
+      };
+    }
+
+    const otp = createOtp(matchedUser.email, matchedUser.emp_id);
+
+    return {
+      success: true as const,
+      message: AUTH_ERRORS.otpSent,
+      email: matchedUser.email,
+      empId: matchedUser.emp_id,
+      demoOtp: otp,
+    };
+  } catch (error) {
+    console.error("requestPasswordOtp:", error);
+    return {
+      success: false as const,
+      error: "A system error occurred.",
+      emailError: null,
+      empIdError: null,
+    };
+  }
+}
+
+export async function verifyPasswordOtp(
+  email: string,
+  empId: string,
+  otp: string
+) {
+  const normalizedEmail = resolveAccountEmail(email).toLowerCase();
+  const normalizedEmpId = empId.trim().toUpperCase();
+
+  if (!normalizedEmail || !normalizedEmpId || !otp.trim()) {
+    return {
+      success: false as const,
+      error: AUTH_ERRORS.required,
+    };
+  }
+
+  const valid = verifyOtpAndGrantReset(normalizedEmail, normalizedEmpId, otp);
+  if (!valid) {
+    return { success: false as const, error: AUTH_ERRORS.otpInvalid };
+  }
+
+  return { success: true as const, message: AUTH_ERRORS.otpVerified };
+}
+
+export async function resetPasswordAfterOtp(
+  email: string,
+  empId: string,
+  newPassword: string,
+  confirmPassword: string
+) {
+  const normalizedEmail = resolveAccountEmail(email).toLowerCase();
+  const normalizedEmpId = empId.trim().toUpperCase();
+
+  if (!normalizedEmail || !normalizedEmpId) {
+    return {
+      success: false as const,
+      error: AUTH_ERRORS.required,
+      passwordError: null,
+      confirmPasswordError: null,
+    };
+  }
+
+  if (!hasResetGrant(normalizedEmail, normalizedEmpId)) {
+    return {
+      success: false as const,
+      error: AUTH_ERRORS.resetExpired,
+      passwordError: null,
+      confirmPasswordError: null,
+    };
+  }
+
+  if (!newPassword.trim()) {
+    return {
+      success: false as const,
+      error: AUTH_ERRORS.required,
+      passwordError: AUTH_ERRORS.required,
+      confirmPasswordError: null,
+    };
+  }
+
+  if (newPassword.length < 6) {
+    return {
+      success: false as const,
+      error: AUTH_ERRORS.passwordMinLength,
+      passwordError: AUTH_ERRORS.passwordMinLength,
+      confirmPasswordError: null,
+    };
+  }
+
+  if (!confirmPassword.trim()) {
+    return {
+      success: false as const,
+      error: AUTH_ERRORS.required,
+      passwordError: null,
+      confirmPasswordError: AUTH_ERRORS.required,
+    };
+  }
+
+  if (newPassword !== confirmPassword) {
+    return {
+      success: false as const,
+      error: AUTH_ERRORS.passwordMismatch,
+      passwordError: null,
+      confirmPasswordError: AUTH_ERRORS.passwordMismatch,
+    };
+  }
+
+  try {
+    await ensureUserSchema();
+    const passwordHash = await bcrypt.hash(newPassword, 10);
+    const updated = await sql`
+      UPDATE users
+      SET password = ${passwordHash}, updated_at = NOW()
+      WHERE LOWER(email) = ${normalizedEmail}
+        AND UPPER(emp_id) = ${normalizedEmpId}
+      RETURNING id
+    `;
+
+    if (!updated[0]) {
+      return {
+        success: false as const,
+        error: AUTH_ERRORS.invalidForgotDetails,
+        passwordError: null,
+        confirmPasswordError: null,
+      };
+    }
+
+    consumeResetGrant(normalizedEmail, normalizedEmpId);
+
+    return {
+      success: true as const,
+      message: AUTH_ERRORS.passwordResetSuccess,
+      passwordError: null,
+      confirmPasswordError: null,
+    };
+  } catch (error) {
+    console.error("resetPasswordAfterOtp:", error);
+    return {
+      success: false as const,
+      error: "A system error occurred.",
+      passwordError: null,
+      confirmPasswordError: null,
+    };
+  }
+}
+
+export async function createFlightAction(formData: {
+  code: string;
+  aircraft: string;
+  origin_code: string;
+  origin_city: string;
+  destination_code: string;
+  destination_city: string;
+  departure_time: string;
+  arrival_time: string;
+  status: string;
+  capacity_tons: number;
+  used_tons: number;
+}) {
+  await ensureFlightSchema();
+  try {
+    await sql`
+      INSERT INTO flights (
+        code, aircraft, origin_code, origin_city,
+        destination_code, destination_city, departure_time,
+        arrival_time, status, progress, capacity_tons, used_tons
+      ) VALUES (
+        ${formData.code}, ${formData.aircraft}, ${formData.origin_code},
+        ${formData.origin_city}, ${formData.destination_code}, ${formData.destination_city},
+        ${formData.departure_time}, ${formData.arrival_time}, ${formData.status},
+        0, ${formData.capacity_tons}, ${formData.used_tons}
+      )
+    `;
+    revalidatePath("/flights");
+    return { success: true };
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : "";
+    if (message.includes("unique")) {
+      return { success: false, error: "Flight code is already in use." };
+    }
+    return { success: false, error: "Failed to create flight." };
+  }
+}
+
+export async function updateFlightAction(
+  id: number,
+  formData: {
+    aircraft: string;
+    origin_code: string;
+    origin_city: string;
+    destination_code: string;
+    destination_city: string;
+    departure_time: string;
+    arrival_time: string;
+    status: string;
+    capacity_tons: number;
+    used_tons: number;
+  },
+) {
+  await ensureFlightSchema();
+  try {
+    await sql`
+      UPDATE flights SET
+        aircraft = ${formData.aircraft},
+        origin_code = ${formData.origin_code},
+        origin_city = ${formData.origin_city},
+        destination_code = ${formData.destination_code},
+        destination_city = ${formData.destination_city},
+        departure_time = ${formData.departure_time},
+        arrival_time = ${formData.arrival_time},
+        status = ${formData.status},
+        capacity_tons = ${formData.capacity_tons},
+        used_tons = ${formData.used_tons},
+        updated_at = NOW()
+      WHERE id = ${id}
+    `;
+    revalidatePath("/flights");
+    return { success: true };
+  } catch {
+    return { success: false, error: "Failed to update flight." };
+  }
+}
+
+export async function deleteFlightAction(id: number) {
+  await ensureFlightSchema();
+  try {
+    await sql`DELETE FROM flights WHERE id = ${id}`;
+    revalidatePath("/flights");
+    return { success: true };
+  } catch {
+    return { success: false, error: "Failed to delete flight." };
   }
 }

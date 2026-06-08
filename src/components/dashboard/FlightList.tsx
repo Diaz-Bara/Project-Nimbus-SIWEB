@@ -9,7 +9,7 @@ export default async function FlightList() {
 
       <div className="space-y-3 text-sm">
         {flights.length === 0 ? (
-          <p className="text-gray-500">Belum ada data flight.</p>
+          <p className="text-gray-500">No flight data yet.</p>
         ) : (
           flights.map((flight) => (
             <div key={flight.id} className="p-3 bg-gray-100 rounded-lg">

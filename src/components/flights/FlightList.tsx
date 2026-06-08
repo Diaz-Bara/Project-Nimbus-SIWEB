@@ -13,7 +13,7 @@ export default async function FlightList({
   return (
     <div className="space-y-4">
       {flights.length === 0 ? (
-        <p className="text-gray-500 italic">Tidak ada penerbangan yang cocok.</p>
+        <p className="text-gray-500 italic">No matching flights found.</p>
       ) : (
         flights.map((flight) => (
           <FlightCard key={flight.id} flight={flight} />

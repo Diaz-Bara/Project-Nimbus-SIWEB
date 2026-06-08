@@ -9,13 +9,13 @@ export default function Footer() {
             Nimbus <span className="text-orange-400">Cargo Express</span>
           </h2>
           <p className="text-sm text-gray-300">
-            ⚡Solusi pengiriman kargo udara cepat, aman, dan terpercaya di seluruh Indonesia. ⚡
+            Fast, secure, and reliable air cargo delivery across Indonesia.
           </p>
         </div>
 
         {/* KONTAK */}
         <div>
-          <h3 className="font-semibold mb-3">Kontak Cepat</h3>
+          <h3 className="font-semibold mb-3">Quick Contact</h3>
           <p className="text-sm text-gray-300">☎️ contact@nimbuscargo.com</p>
           <p className="text-sm text-gray-300">📞 +62 21 5555 1234</p>
           <p className="text-sm text-gray-300">📍 Yogyakarta, Indonesia</p>

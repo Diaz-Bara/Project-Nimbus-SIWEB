@@ -1,111 +1,153 @@
 "use client";
 
-import Image from "next/image";
-import { useRef } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
+import { EyeIcon, EyeSlashIcon } from "@heroicons/react/24/outline";
+import AuthShell from "@/components/auth/AuthShell";
+import FormAlert from "@/components/ui/FormAlert";
+import FormField, { fieldControlClass } from "@/components/ui/FormField";
+import { AUTH_ERRORS, validateLoginInput } from "@/lib/auth-credentials";
+import { FORM_ERRORS } from "@/lib/form-errors";
 
 export default function LoginPage() {
   const router = useRouter();
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [showPassword, setShowPassword] = useState(false);
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [passwordError, setPasswordError] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const emailRef = useRef<HTMLInputElement>(null);
-  const passwordRef = useRef<HTMLInputElement>(null);
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setFormError(null);
 
-  const handleLogin = (e?: React.FormEvent) => {
-    e?.preventDefault();
+    const validation = validateLoginInput(username, password);
+    if (!validation.ok) {
+      setUsernameError(validation.usernameError);
+      setPasswordError(validation.passwordError);
+      return;
+    }
 
-    const email = emailRef.current?.value.trim().toLowerCase();
-    const password = passwordRef.current?.value.trim();
+    setUsernameError(null);
+    setPasswordError(null);
+    setIsLoading(true);
 
-    //  MULTI USER (ADMIN + OPERATOR)
-    const users = [
-      {
-        email: "admin",
-        password: "admin123",
-        role: "admin",
-      },
-      {
-        email: "operator",
-        password: "operator123",
-        role: "operator",
-      },
-    ];
+    try {
+      const res = await fetch("/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ username, password }),
+      });
+      const result = await res.json();
 
-    const foundUser = users.find(
-      (u) => u.email === email && u.password === password
-    );
+      if (result.success) {
+        localStorage.setItem(
+          "user",
+          JSON.stringify({ email: result.email, role: result.role })
+        );
+        router.push("/dashboard");
+        router.refresh();
+        return;
+      }
 
-    if (foundUser) {
-      // simpan user ke localStorage
-      localStorage.setItem("user", JSON.stringify(foundUser));
-      document.cookie = `app_user=${foundUser.email}; path=/; max-age=86400; SameSite=Lax`;
-      document.cookie = `app_role=${foundUser.role}; path=/; max-age=86400; SameSite=Lax`;
-
-      // redirect (semua ke dashboard dulu)
-      router.push("/dashboard");
-    } else {
-      alert("Email atau password salah!");
+      setUsernameError(result.usernameError || null);
+      setPasswordError(result.passwordError || null);
+      setFormError(result.error || AUTH_ERRORS.invalidCredentials);
+    } catch {
+      setFormError(FORM_ERRORS.network);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 relative">
+    <AuthShell
+      title="Login"
+      subtitle="Enter your credentials to access the system"
+      backHref="/"
+      backLabel="Back"
+    >
+      <form onSubmit={handleLogin} noValidate>
+        <FormField label="Email or Username" htmlFor="username" required error={usernameError}>
+          <input
+            id="username"
+            type="text"
+            placeholder="admin or operator"
+            aria-invalid={Boolean(usernameError)}
+            className={fieldControlClass(Boolean(usernameError), "form")}
+            autoComplete="username"
+            disabled={isLoading}
+            value={username}
+            onChange={(e) => {
+              setUsername(e.target.value);
+              if (usernameError) setUsernameError(null);
+            }}
+          />
+        </FormField>
 
-      {/* CARD */}
-      <div className="bg-white w-full max-w-sm p-6 rounded-2xl shadow-lg">
-
-        {/* LOGO */}
-        <div className="flex flex-col items-center mb-4">
-          <Image src="/logo.png" alt="logo" width={60} height={60} />
-          <h1 className="text-sm font-semibold mt-2 text-gray-700">
-            Nimbus <span className="text-orange-400">Cargo Express</span>
-          </h1>
+        <div className="mt-3">
+          <FormField label="Password" htmlFor="password" required error={passwordError}>
+            <div className="relative">
+              <input
+                id="password"
+                type={showPassword ? "text" : "password"}
+                placeholder="Password"
+                aria-invalid={Boolean(passwordError)}
+                className={`${fieldControlClass(Boolean(passwordError), "form")} pr-10`}
+                autoComplete="current-password"
+                disabled={isLoading}
+                value={password}
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (passwordError) setPasswordError(null);
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                aria-label={showPassword ? "Hide password" : "Show password"}
+              >
+                {showPassword ? (
+                  <EyeSlashIcon className="w-5 h-5" />
+                ) : (
+                  <EyeIcon className="w-5 h-5" />
+                )}
+              </button>
+            </div>
+          </FormField>
         </div>
 
-        {/* TITLE */}
-        <h2 className="text-center font-semibold text-gray-700 mb-1">
-          Login
-        </h2>
-        <p className="text-center text-xs text-gray-400 mb-4">
-          Enter your credentials to access the system
-        </p>
-
-        <form onSubmit={handleLogin}>
-          {/* INPUT (TIDAK DIUBAH UI) */}
-          <input
-            ref={emailRef}
-            type="text"
-            placeholder="Email or Username"
-            className="w-full border rounded-lg px-3 py-2 mb-3 text-sm"
-          />
-
-          <input
-            ref={passwordRef}
-            type="password"
-            placeholder="Password"
-            className="w-full border rounded-lg px-3 py-2 mb-3 text-sm"
-          />
-
-          {/* OPTIONS */}
-          <div className="flex justify-between text-xs mb-4">
-            <label className="flex items-center gap-1">
-              <input type="checkbox" />
-              Remember me
-            </label>
-            <span className="text-blue-500 cursor-pointer">
-              Forgot password?
-            </span>
+        {formError && (
+          <div className="mt-3">
+            <FormAlert message={formError} />
           </div>
+        )}
 
-          {/* BUTTON */}
-          <button
-            type="submit"
-            className="w-full bg-blue-600 text-white py-2 rounded-lg mb-3 hover:bg-blue-700 transition"
+        <div className="flex justify-between items-center text-xs mb-5 mt-4">
+          <label className="flex items-center gap-1.5 text-gray-700 cursor-pointer">
+            <input type="checkbox" className="rounded border-gray-300 text-blue-600 focus:ring-blue-500" />
+            Remember me
+          </label>
+          <Link
+            href="/login/forgot-password"
+            className="text-blue-500 hover:text-blue-700 transition-colors"
           >
-            LOGIN
-          </button>
-        </form>
+            Forgot password?
+          </Link>
+        </div>
 
-      </div>
-    </div>
+        <button
+          type="submit"
+          disabled={isLoading}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white py-2.5 rounded-lg text-sm font-semibold tracking-wide transition-colors disabled:opacity-70"
+        >
+          {isLoading ? "LOGGING IN..." : "LOGIN"}
+        </button>
+      </form>
+    </AuthShell>
   );
 }
