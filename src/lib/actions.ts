@@ -4,6 +4,7 @@ import postgres from 'postgres';
 import { revalidatePath } from 'next/cache';
 import { z } from 'zod';
 import bcrypt from 'bcryptjs';
+import { getPasswordForUser } from '@/lib/user-credentials';
 
 const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 export { sql };
@@ -114,23 +115,9 @@ async function ensureUserSchema() {
   await sql`UPDATE users SET role = UPPER(role) WHERE role IS NOT NULL`;
   await sql`UPDATE users SET status = UPPER(status) WHERE status IS NOT NULL`;
 
-  const seedState = await sql`
-    SELECT
-      COUNT(*)::int AS total,
-      COUNT(*) FILTER (WHERE emp_id IS NOT NULL)::int AS with_emp_id
-    FROM users
-  `;
-
-  if (
-    Number(seedState[0]?.total || 0) >= userSeedData.length &&
-    Number(seedState[0]?.with_emp_id || 0) >= userSeedData.length
-  ) {
-    return;
-  }
-
-  const defaultHash = await bcrypt.hash("password123", 10);
-
   for (const user of userSeedData) {
+    const passwordHash = await bcrypt.hash(getPasswordForUser(user.email), 10);
+
     await sql`
       INSERT INTO users (
         name,
@@ -146,7 +133,7 @@ async function ensureUserSchema() {
       VALUES (
         ${user.name},
         ${user.email},
-        ${defaultHash},
+        ${passwordHash},
         ${user.role},
         ${user.empId},
         ${user.terminal},
@@ -156,7 +143,7 @@ async function ensureUserSchema() {
       )
       ON CONFLICT (email) DO UPDATE SET
         name = EXCLUDED.name,
-        password = COALESCE(users.password, EXCLUDED.password),
+        password = EXCLUDED.password,
         role = EXCLUDED.role,
         emp_id = EXCLUDED.emp_id,
         terminal = EXCLUDED.terminal,
