@@ -47,7 +47,7 @@ export default function ShipmentInteractive({
       const result = await deleteShipmentAction(shipmentToDelete);
       if (!result.success) {
         setData(previousData);
-        alert(result.error || "Gagal menghapus shipment.");
+        alert(result.error || "Failed to delete shipment.");
       }
     }
     setIsDeleteModalOpen(false);

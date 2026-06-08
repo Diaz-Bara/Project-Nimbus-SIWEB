@@ -8,11 +8,11 @@ export default function Navbar() {
   const pathname = usePathname();
 
   const menu = [
-    { name: "Beranda", path: "/" },
-    { name: "Tentang", path: "/Tentang" },
-    { name: "Layanan", path: "/Layanan" },
-    { name: "Klien", path: "/Klien" },
-    { name: "Kontak", path: "/Kontak" },
+    { name: "Home", path: "/" },
+    { name: "About", path: "/Tentang" },
+    { name: "Services", path: "/Layanan" },
+    { name: "Clients", path: "/Klien" },
+    { name: "Contact", path: "/Kontak" },
   ];
 
   return (

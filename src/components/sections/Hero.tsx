@@ -28,19 +28,19 @@ export default function Hero() {
           </h1>
 
           <p className="mb-4 font-semibold text-gray-200">
-            Solusi Pengiriman Kargo Udara Cepat, Aman, dan Terpercaya
+            Fast, Secure, and Reliable Air Cargo Solutions
           </p>
 
           <p className="mb-6 text-gray-300 text-sm max-w-md">
-            Kami menghadirkan layanan logistik kargo udara profesional
-            dengan jangkauan luas ke seluruh Indonesia dan mancanegara.
+            We deliver professional air cargo logistics with broad coverage
+            across Indonesia and international destinations.
           </p>
 
           <Link
             href="/tracking"
             className="inline-flex items-center gap-2 bg-orange-400 hover:bg-orange-500 text-black px-6 py-3 rounded-xl font-semibold shadow-md transition"
           >
-            Tracking Sekarang
+            Track Now
             <MagnifyingGlassIcon className="h-5 w-5" aria-hidden="true" />
           </Link>
         </div>

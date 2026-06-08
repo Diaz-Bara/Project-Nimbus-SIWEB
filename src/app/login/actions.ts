@@ -11,12 +11,12 @@ export async function loginAction(
   const password = formData.get("password") as string;
 
   if (!email || !password) {
-    return "Email dan password harus diisi.";
+    return "Email and password are required.";
   }
 
   const user = await loginUser(email, password);
   if (!user) {
-    return "Email atau password salah.";
+    return "Invalid email or password.";
   }
 
   await setSessionCookie(user);

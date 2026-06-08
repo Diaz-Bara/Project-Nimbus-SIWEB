@@ -70,15 +70,15 @@ export async function GET() {
       `;
       const customersData = [
         { name: "Andi Wijaya", company: "PT Tech Corp" },
-        { name: "Siti Rahma", company: "CV Logistik Jaya" },
+        { name: "Siti Rahma", company: "CV Logistics Jaya" },
         { name: "Budi Sentosa", company: "PT Budi Sentosa Utama" },
-        { name: "Dewi Lestari", company: "PT Global Impor" },
-        { name: "Faisal Akbar", company: "Toko Maju" },
-        { name: "Rina Melati", company: "Koperasi Makmur" },
-        { name: "Hendra Gunawan", company: "PT Ekspor Cepat" },
+        { name: "Dewi Lestari", company: "PT Global Import" },
+        { name: "Faisal Akbar", company: "Maju Store" },
+        { name: "Rina Melati", company: "Makmur Cooperative" },
+        { name: "Hendra Gunawan", company: "PT Fast Export" },
         { name: "Maya Sari", company: "Sinar Mas" },
         { name: "Tono Supriatna", company: "Indo Trading" },
-        { name: "Kevin Sanjaya", company: "PT Karya Anak Bangsa" }
+        { name: "Kevin Sanjaya", company: "PT National Works" }
       ];
 
       for (const cust of customersData) {
@@ -106,7 +106,7 @@ export async function GET() {
           category TEXT
         );
       `;
-      const items = ["Elektronik", "Pakaian", "Makanan Kering", "Obat-obatan", "Dokumen", "Suku Cadang Mesin", "Kosmetik", "Mainan Anak", "Perabotan", "Bahan Kimia Aman"];
+      const items = ["Electronics", "Clothing", "Dried Food", "Medicine", "Documents", "Machine Parts", "Cosmetics", "Toys", "Furniture", "Safe Chemicals"];
       for (const item of items) {
         await sql`INSERT INTO items (name, category) VALUES (${item}, 'General Cargo')`;
       }
@@ -136,7 +136,7 @@ export async function GET() {
       const weights = [120, 450, 80, 1500, 310, 620, 95, 1100, 240, 500];
       const serviceLevels = ["Express Priority", "Standard Cargo", "Economy Cargo", "Express Priority", "Standard Cargo", "Economy Cargo", "Express Priority", "Standard Cargo", "Economy Cargo", "Express Priority"];
       const senders = ["Raka Pratama", "Maya Santoso", "Nadia Putri", "Fajar Akbar", "Dimas Surya", "Lina Kartika", "Seno Wibowo", "Clara Wijaya", "Yusuf Hadi", "Rani Amelia"];
-      const itemTypes = ["Dokumen", "Elektronik", "Pakaian", "Suku Cadang Mesin", "Kosmetik", "Makanan Kering", "Obat-obatan", "Mainan Anak", "Perabotan", "Bahan Kimia Aman"];
+      const itemTypes = ["Documents", "Electronics", "Clothing", "Machine Parts", "Cosmetics", "Dried Food", "Medicine", "Toys", "Furniture", "Safe Chemicals"];
 
       for (let i = 0; i < 10; i++) {
         const custId = i < 3 ? 1 : i + 1; 
@@ -145,7 +145,7 @@ export async function GET() {
         // Data dummy untuk 3 kolom baru
         const tglKirim = `2026-05-${String(i + 1).padStart(2, '0')}`;
         const serviceLvl = serviceLevels[i];
-        const desc = `Barang kargo batch ${i + 1} dalam kondisi baik.`;
+        const desc = `Cargo batch ${i + 1} is in good condition.`;
 
         await sql`
           INSERT INTO shipments (
@@ -191,7 +191,7 @@ export async function GET() {
         );
       `;
       for (let i = 1; i <= 10; i++) {
-        const namaPenerima = `Penerima ${i}`;
+        const namaPenerima = `Recipient ${i}`;
         const noTelp = `0812345678${i.toString().padStart(2, '0')}`;
         
         await sql`INSERT INTO shipment_details (shipment_id, origin, destination, recipient_name, phone_number) VALUES (${i}, 'Jakarta', 'Singapore', ${namaPenerima}, ${noTelp})`;
@@ -243,7 +243,7 @@ export async function GET() {
 
     });
 
-    return Response.json({ message: "Database seeded successfully! 4 Kriteria Tambahan (Tanpa detail kendaraan) berhasil ditambahkan 🚀" });
+    return Response.json({ message: "Database seeded successfully! Additional criteria records have been added." });
   } catch (error) {
     console.error(error);
     return Response.json({ error: "Seeding failed ❌" }, { status: 500 });

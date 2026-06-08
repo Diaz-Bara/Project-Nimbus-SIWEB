@@ -102,7 +102,7 @@ export default function ShipmentForm({ data }: ShipmentFormProps) {
       router.push("/shipments");
       router.refresh();
     } else {
-      setMessage(result.error || "Gagal menyimpan data shipment.");
+      setMessage(result.error || "Failed to save shipment data.");
     }
 
     setIsSaving(false);
@@ -157,7 +157,7 @@ export default function ShipmentForm({ data }: ShipmentFormProps) {
                 <input
                   required
                   type="text"
-                  placeholder="Nama pengirim"
+                  placeholder="Sender name"
                   className="w-full pb-2 border-b border-gray-200 outline-none focus:border-[#0a327d] text-sm text-gray-800 bg-transparent"
                   value={form.sender_name}
                   onChange={(e) => updateField("sender_name", e.target.value)}
@@ -169,7 +169,7 @@ export default function ShipmentForm({ data }: ShipmentFormProps) {
                 <input
                   required
                   type="text"
-                  placeholder="Nama penerima"
+                  placeholder="Recipient name"
                   className="w-full pb-2 border-b border-gray-200 outline-none focus:border-[#0a327d] text-sm text-gray-800 bg-transparent"
                   value={form.recipient_name}
                   onChange={(e) => updateField("recipient_name", e.target.value)}
@@ -181,7 +181,7 @@ export default function ShipmentForm({ data }: ShipmentFormProps) {
                 <input
                   required
                   type="text"
-                  placeholder="Nomor telepon"
+                  placeholder="Phone number"
                   className="w-full pb-2 border-b border-gray-200 outline-none focus:border-[#0a327d] text-sm text-gray-800 bg-transparent"
                   value={form.phone_number}
                   onChange={(e) => updateField("phone_number", e.target.value)}
@@ -194,7 +194,7 @@ export default function ShipmentForm({ data }: ShipmentFormProps) {
                   <input
                     required
                     type="text"
-                    placeholder="Kota asal"
+                    placeholder="Origin city"
                     className="w-full pb-2 border-b border-gray-200 outline-none focus:border-[#0a327d] text-sm text-gray-800 bg-transparent"
                     value={form.origin}
                     onChange={(e) => updateField("origin", e.target.value)}
@@ -205,7 +205,7 @@ export default function ShipmentForm({ data }: ShipmentFormProps) {
                   <input
                     required
                     type="text"
-                    placeholder="Kota tujuan"
+                    placeholder="Destination city"
                     className="w-full pb-2 border-b border-gray-200 outline-none focus:border-[#0a327d] text-sm text-gray-800 bg-transparent"
                     value={form.destination}
                     onChange={(e) => updateField("destination", e.target.value)}
@@ -224,7 +224,7 @@ export default function ShipmentForm({ data }: ShipmentFormProps) {
                 <input
                   required
                   type="text"
-                  placeholder="Jenis barang"
+                  placeholder="Item type"
                   className="w-full pb-2 border-b border-gray-200 outline-none focus:border-[#0a327d] text-sm text-gray-800 bg-transparent"
                   value={form.item_type}
                   onChange={(e) => updateField("item_type", e.target.value)}
@@ -237,7 +237,7 @@ export default function ShipmentForm({ data }: ShipmentFormProps) {
                   required
                   type="number"
                   min="1"
-                  placeholder="Berat dalam KG"
+                  placeholder="Weight in KG"
                   className="w-full pb-2 border-b border-gray-200 outline-none focus:border-[#0a327d] text-sm text-gray-800 bg-transparent"
                   value={form.weight}
                   onChange={(e) => updateField("weight", e.target.value)}
@@ -303,7 +303,7 @@ export default function ShipmentForm({ data }: ShipmentFormProps) {
             <textarea
               required
               rows={3}
-              placeholder="Catatan pengiriman"
+              placeholder="Shipment notes"
               className="w-full rounded-lg border border-gray-200 p-3 outline-none focus:border-[#0a327d] text-sm text-gray-800"
               value={form.description}
               onChange={(e) => updateField("description", e.target.value)}

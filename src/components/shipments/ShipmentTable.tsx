@@ -33,7 +33,7 @@ export default function ShipmentTable({ shipments }: { shipments: Shipment[] }) 
   if (!shipments || shipments.length === 0) {
     return (
       <div className="bg-white p-12 rounded-xl shadow-sm border border-gray-100 text-center">
-        <p className="text-gray-400 text-sm">Tidak ada data shipment ditemukan.</p>
+        <p className="text-gray-400 text-sm">No shipment data found.</p>
       </div>
     );
   }

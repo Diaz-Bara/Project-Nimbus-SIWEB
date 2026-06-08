@@ -54,7 +54,7 @@ export default function UserInteractive({
     const result = await saveUserAction(userData, selectedUser?.id);
 
     if (!result.success || !result.user) {
-      setSaveError(result.error || "Gagal menyimpan user.");
+      setSaveError(result.error || "Failed to save user.");
       setIsSaving(false);
       return;
     }
@@ -112,7 +112,7 @@ export default function UserInteractive({
         <tbody>
           {data.length === 0 ? (
             <tr>
-              <td colSpan={7} className="text-center py-6 text-gray-500 italic">User tidak ditemukan.</td>
+              <td colSpan={7} className="text-center py-6 text-gray-500 italic">No users found.</td>
             </tr>
           ) : (
             data.map((u) => (

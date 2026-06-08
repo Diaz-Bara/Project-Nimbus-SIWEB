@@ -465,11 +465,11 @@ export async function saveUserAction(userData: UserFormData, id?: number) {
   await ensureUserSchema();
 
   const UserSchema = z.object({
-    name: z.string().min(1, "Nama wajib diisi."),
-    email: z.string().email("Email tidak valid."),
-    empId: z.string().min(1, "Employee ID wajib diisi."),
+    name: z.string().min(1, "Name is required."),
+    email: z.string().email("Invalid email address."),
+    empId: z.string().min(1, "Employee ID is required."),
     role: z.enum(["ADMIN", "OPERATOR"]),
-    terminal: z.string().min(1, "Terminal wajib diisi."),
+    terminal: z.string().min(1, "Terminal is required."),
     status: z.enum(["ACTIVE", "INACTIVE"]),
   });
 
@@ -483,7 +483,7 @@ export async function saveUserAction(userData: UserFormData, id?: number) {
   if (!parsed.success) {
     return {
       success: false,
-      error: "Form user belum lengkap atau formatnya tidak sesuai.",
+      error: "The user form is incomplete or contains invalid values.",
     };
   }
 
@@ -536,7 +536,7 @@ export async function saveUserAction(userData: UserFormData, id?: number) {
     console.error("Save user error:", error);
     return {
       success: false,
-      error: "Gagal menyimpan user ke database. Periksa email agar tidak duplikat.",
+      error: "Failed to save user. Check that the email is not duplicated.",
     };
   }
 }
@@ -545,20 +545,20 @@ export async function saveUserAction(userData: UserFormData, id?: number) {
 // 2. ZOD VALIDATION SCHEMA (ERROR HANDLING TEXT)
 // ==========================================
 const ShipmentSchema = z.object({
-  awb: z.string().min(1, "AWB tidak boleh kosong."),
-  sender_name: z.string().min(1, "Nama pengirim wajib diisi."),
-  recipient_name: z.string().min(1, "Nama penerima wajib diisi."),
-  weight: z.coerce.number().gt(0, "Berat harus lebih dari 0."),
-      status: z.string().min(1, "Status wajib dipilih."),
-  shipping_date: z.string().min(1, "Tanggal kirim wajib diisi."),
-  service_level: z.string().min(1, "Jenis pengiriman wajib dipilih."),
-  item_type: z.string().min(1, "Jenis barang wajib diisi."),
-    description: z.string().min(1, "Deskripsi wajib diisi."),
-  origin: z.string().min(1, "Kota asal wajib diisi."),
-  destination: z.string().min(1, "Kota tujuan wajib diisi."),
+  awb: z.string().min(1, "AWB cannot be empty."),
+  sender_name: z.string().min(1, "Sender name is required."),
+  recipient_name: z.string().min(1, "Recipient name is required."),
+  weight: z.coerce.number().gt(0, "Weight must be greater than 0."),
+      status: z.string().min(1, "Status is required."),
+  shipping_date: z.string().min(1, "Shipping date is required."),
+  service_level: z.string().min(1, "Service level is required."),
+  item_type: z.string().min(1, "Item type is required."),
+    description: z.string().min(1, "Description is required."),
+  origin: z.string().min(1, "Origin city is required."),
+  destination: z.string().min(1, "Destination city is required."),
   phone_number: z
     .string()
-    .regex(/^[0-9+ -]{8,15}$/, "Nomor telepon harus 8-15 digit/karakter.")
+    .regex(/^[0-9+ -]{8,15}$/, "Phone number must be 8-15 digits/characters.")
 });
 
 // ==========================================
@@ -915,7 +915,7 @@ export async function saveShipment(formData: any, isUpdate = false, id?: number)
     return { success: true };
   } catch (error) {
     console.error("Save shipment error:", error);
-    return { success: false, error: "Gagal menyimpan data shipment." };
+    return { success: false, error: "Failed to save shipment data." };
   }
 }
 
@@ -927,7 +927,7 @@ export async function deleteShipmentAction(id: number) {
     return { success: true };
   } catch (error) {
     console.error("Delete shipment error:", error);
-    return { success: false, error: "Gagal menghapus shipment." };
+    return { success: false, error: "Failed to delete shipment." };
   }
 }
 
@@ -986,7 +986,7 @@ export async function getTrackingByAwb(awb: string) {
     };
   } catch (error) {
     console.error("Tracking error:", error);
-    return { success: false, error: "Gagal mengambil data tracking." };
+    return { success: false, error: "Failed to fetch tracking data." };
   }
 }
 

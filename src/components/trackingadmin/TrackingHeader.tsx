@@ -12,7 +12,7 @@ export default async function TrackingHeader({ awb }: { awb: string }) {
           <input
             name="awb"
             defaultValue={awb}
-            placeholder="Masukkan nomor AWB"
+            placeholder="Enter AWB number"
             className="flex-1 border border-gray-200 px-4 py-2 rounded-lg text-sm"
           />
           <button type="submit" className="bg-blue-700 text-white px-4 py-2 rounded-lg text-sm hover:bg-blue-800 transition">
