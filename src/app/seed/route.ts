@@ -1,5 +1,6 @@
 import postgres from "postgres";
 import bcrypt from "bcryptjs";
+import { flightSeedData } from "@/lib/flight-seed-data";
 
 const sql = postgres(process.env.POSTGRES_URL!, {
   ssl: "require",
@@ -87,17 +88,57 @@ export async function GET() {
         await sql`INSERT INTO customers (name, company) VALUES (${cust.name}, ${cust.company})`;
       }
 
-      // ================= 3. MASTER: FLIGHTS (KEMBALI KE STRUKTUR AWAL) =================
+      // ================= 3. MASTER: FLIGHTS =================
       await sql`
         CREATE TABLE flights (
           id SERIAL PRIMARY KEY,
           code TEXT UNIQUE,
-          status TEXT
+          status TEXT,
+          aircraft TEXT,
+          origin_code TEXT,
+          origin_city TEXT,
+          destination_code TEXT,
+          destination_city TEXT,
+          departure_time TIME,
+          arrival_time TIME,
+          progress INT DEFAULT 0,
+          capacity_tons INT DEFAULT 0,
+          used_tons INT DEFAULT 0,
+          created_at TIMESTAMP DEFAULT NOW(),
+          updated_at TIMESTAMP DEFAULT NOW()
         );
       `;
-      const flights = ["PT-882", "PT-914", "PT-115", "PT-552", "PT-771", "PT-330", "PT-999", "PT-202", "PT-404", "PT-505"];
-      for (const code of flights) {
-        await sql`INSERT INTO flights (code, status) VALUES (${code}, 'ACTIVE')`;
+      for (const flight of flightSeedData) {
+        await sql`
+          INSERT INTO flights (
+            code,
+            aircraft,
+            origin_code,
+            origin_city,
+            destination_code,
+            destination_city,
+            departure_time,
+            arrival_time,
+            status,
+            progress,
+            capacity_tons,
+            used_tons
+          )
+          VALUES (
+            ${flight.code},
+            ${flight.aircraft},
+            ${flight.origin_code},
+            ${flight.origin_city},
+            ${flight.destination_code},
+            ${flight.destination_city},
+            ${flight.departure_time},
+            ${flight.arrival_time},
+            ${flight.status},
+            ${flight.progress},
+            ${flight.capacity_tons},
+            ${flight.used_tons}
+          )
+        `;
       }
 
       // ================= 4. MASTER: ITEMS =================

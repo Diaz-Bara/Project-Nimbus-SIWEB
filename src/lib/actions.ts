@@ -18,6 +18,7 @@ import {
   hasResetGrant,
   verifyOtpAndGrantReset,
 } from '@/lib/otp-store';
+import { flightSeedData } from '@/lib/flight-seed-data';
 
 const sql = postgres(process.env.POSTGRES_URL!, {
   ssl: 'require',
@@ -196,93 +197,6 @@ async function ensureUserSchema() {
   userSchemaReady = true;
 }
 
-const flightSeedData = [
-  {
-    code: "PT-882",
-    aircraft: "Boeing 777-F",
-    origin_code: "CGK",
-    origin_city: "Jakarta",
-    destination_code: "SIN",
-    destination_city: "Singapore",
-    departure_time: "08:45",
-    arrival_time: "10:30",
-    status: "ACTIVE",
-    progress: 65,
-    capacity_tons: 60,
-    used_tons: 48,
-  },
-  {
-    code: "PT-914",
-    aircraft: "Airbus A330-200F",
-    origin_code: "SIN",
-    origin_city: "Singapore",
-    destination_code: "HKG",
-    destination_city: "Hong Kong",
-    departure_time: "11:15",
-    arrival_time: "15:45",
-    status: "DELAY",
-    progress: 20,
-    capacity_tons: 55,
-    used_tons: 42,
-  },
-  {
-    code: "PT-115",
-    aircraft: "Boeing 747-8F",
-    origin_code: "CGK",
-    origin_city: "Jakarta",
-    destination_code: "NRT",
-    destination_city: "Tokyo",
-    departure_time: "13:00",
-    arrival_time: "21:15",
-    status: "SCHEDULED",
-    progress: 0,
-    capacity_tons: 70,
-    used_tons: 35,
-  },
-  {
-    code: "PT-552",
-    aircraft: "Airbus A350-F",
-    origin_code: "HKG",
-    origin_city: "Hong Kong",
-    destination_code: "LHR",
-    destination_city: "London",
-    departure_time: "16:20",
-    arrival_time: "05:10",
-    status: "ACTIVE",
-    progress: 25,
-    capacity_tons: 65,
-    used_tons: 51,
-  },
-  {
-    code: "PT-771",
-    aircraft: "Boeing 767-F",
-    origin_code: "CGK",
-    origin_city: "Jakarta",
-    destination_code: "DPS",
-    destination_city: "Denpasar",
-    departure_time: "18:10",
-    arrival_time: "20:05",
-    status: "ACTIVE",
-    progress: 80,
-    capacity_tons: 45,
-    used_tons: 38,
-  },
-  {
-    code: "PT-330",
-    aircraft: "Airbus A321P2F",
-    origin_code: "SUB",
-    origin_city: "Surabaya",
-    destination_code: "KNO",
-    destination_city: "Medan",
-    departure_time: "09:30",
-    arrival_time: "12:10",
-    status: "SCHEDULED",
-    progress: 0,
-    capacity_tons: 32,
-    used_tons: 18,
-  },
-];
-
 async function ensureFlightSchema() {
   if (flightSchemaReady) return;
 
@@ -307,9 +221,6 @@ async function ensureFlightSchema() {
   await sql`ALTER TABLE flights ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()`;
   await sql`ALTER TABLE flights ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()`;
 
-  const flightCount = await sql`SELECT COUNT(*)::int AS total FROM flights`;
-
-  if (Number(flightCount[0]?.total || 0) < flightSeedData.length) {
   for (const flight of flightSeedData) {
     await sql`
       INSERT INTO flights (
@@ -354,7 +265,6 @@ async function ensureFlightSchema() {
         used_tons = COALESCE(flights.used_tons, EXCLUDED.used_tons),
         updated_at = NOW()
     `;
-  }
   }
 
   flightSchemaReady = true;
@@ -1090,9 +1000,11 @@ export async function fetchDashboardFlights(limit = 3) {
         COALESCE(status, 'SCHEDULED') AS status,
         TO_CHAR(COALESCE(departure_time, TIME '08:00'), 'HH24:MI') AS departure_time,
         TO_CHAR(COALESCE(arrival_time, TIME '10:00'), 'HH24:MI') AS arrival_time,
-        COALESCE(origin_code, 'CGK') AS origin_code,
-        COALESCE(destination_code, 'SIN') AS destination_code
+        origin_code,
+        destination_code
       FROM flights
+      WHERE origin_code IS NOT NULL
+        AND destination_code IS NOT NULL
       ORDER BY
         CASE
           WHEN status ILIKE 'ACTIVE' THEN 1
