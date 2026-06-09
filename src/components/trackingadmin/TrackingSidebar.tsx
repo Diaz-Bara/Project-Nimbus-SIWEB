@@ -1,4 +1,5 @@
 import { getTrackingByAwb } from "@/lib/actions";
+import TrackingRouteMapDynamic from "./TrackingRouteMapDynamic";
 
 export default async function TrackingSidebar({ awb }: { awb: string }) {
   const result = (await getTrackingByAwb(awb)) as any;
@@ -65,21 +66,17 @@ export default async function TrackingSidebar({ awb }: { awb: string }) {
       <div className="bg-white p-5 rounded-xl shadow-sm border border-gray-100">
         <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-3">Current Location</p>
 
-        <div className="relative bg-gradient-to-br from-slate-50 via-blue-50 to-sky-100 rounded-lg h-40 overflow-hidden border border-gray-100 flex items-center justify-center">
-          {shipment ? (
-            <svg viewBox="0 0 600 160" className="w-full h-full">
-              <line x1="80" y1="80" x2="520" y2="80" stroke="#cbd5e1" strokeWidth="3" strokeDasharray="6,4" />
-              <line x1="80" y1="80" x2={80 + (440 * ((shipment.status || "").toLowerCase().includes("deliver") ? 100 : (shipment.status || "").toLowerCase().includes("transit") ? 50 : 25) / 100)} y2="80" stroke={(shipment.status || "").toLowerCase().includes("deliver") ? "#10b981" : "#3b82f6"} strokeWidth="4" />
-              <circle cx="80" cy="80" r="6" fill="white" stroke="#3b82f6" strokeWidth="3" />
-              <circle cx="520" cy="80" r="6" fill="white" stroke={(shipment.status || "").toLowerCase().includes("deliver") ? "#10b981" : "#cbd5e1"} strokeWidth="3" />
-              <circle cx={80 + (440 * ((shipment.status || "").toLowerCase().includes("deliver") ? 100 : (shipment.status || "").toLowerCase().includes("transit") ? 50 : 25) / 100)} cy="80" r="8" fill={(shipment.status || "").toLowerCase().includes("deliver") ? "#10b981" : "#f59e0b"} stroke="white" strokeWidth="2" />
-              <text x="80" y="110" textAnchor="middle" className="fill-gray-700 text-[11px] font-bold">{shipment.origin}</text>
-              <text x="520" y="110" textAnchor="middle" className="fill-gray-700 text-[11px] font-bold">{shipment.destination}</text>
-            </svg>
-          ) : (
-            <p className="text-gray-400 text-xs">No shipment data</p>
-          )}
-        </div>
+        {shipment ? (
+          <TrackingRouteMapDynamic
+            origin={shipment.origin}
+            destination={shipment.destination}
+            status={shipment.status}
+          />
+        ) : (
+          <div className="h-40 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center text-xs text-gray-400">
+            No shipment data
+          </div>
+        )}
       </div>
     </div>
   );

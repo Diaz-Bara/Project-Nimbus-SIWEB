@@ -168,30 +168,27 @@ export default function ShipmentForm({ data, availableCities = [] }: ShipmentFor
 
   const inputClass = (field: ShipmentField) => fieldControlClass(Boolean(fieldErrors[field]), "form");
 
+  // Hitung display weight untuk hint: minimal tampil 1 jika kosong
+  const displayWeight = parseFloat(form.weight) > 0 ? form.weight : "1";
+  const displayRate = (SERVICE_RATES[form.service_level] || 50000).toLocaleString("en-US");
+
   return (
     <div className="bg-white p-8 rounded-xl shadow-sm border border-gray-100 mb-8 min-h-[400px]">
-      <div className="mb-6">
-        <h2 className="text-xl font-semibold text-gray-900">
-          {data ? "Update AWB" : "New AWB"}
-        </h2>
-        <p className="text-sm text-gray-500 mt-1">
-          {data ? "Update shipment data for this AWB" : "AWB number will be generated automatically"}
-        </p>
-      </div>
-
       <form onSubmit={handleSubmit} noValidate>
         {formError && <FormAlert message={formError} />}
 
         <FormField
           label="AWB Number"
           htmlFor="awb"
-          hint={data ? "AWB cannot be changed" : form.awb ? `AWB: ${form.awb}` : "Generating AWB..."}
+          hint={data ? "AWB cannot be changed" : !form.awb ? "Generating AWB..." : undefined}
         >
           <input
             id="awb"
             readOnly
-            className="w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm text-gray-600 bg-gray-50 cursor-not-allowed"
-            value={form.awb || "—"}
+            className={`w-full border border-gray-200 rounded-lg px-3 py-2.5 text-sm bg-gray-50 cursor-not-allowed ${
+              form.awb ? "text-gray-800 font-medium" : "text-gray-400 italic"
+            }`}
+            value={form.awb || "Generating AWB..."}
           />
         </FormField>
 
@@ -341,7 +338,7 @@ export default function ShipmentForm({ data, availableCities = [] }: ShipmentFor
           <FormField
             label="Shipping Price"
             htmlFor="price"
-            hint={`Auto: ${form.weight || "0"} kg × IDR ${(SERVICE_RATES[form.service_level] || 50000).toLocaleString("en-US")}/kg`}
+            hint={`Auto: ${displayWeight} kg × IDR ${displayRate}`}
           >
             <input
               id="price"

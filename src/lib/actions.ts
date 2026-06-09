@@ -18,10 +18,29 @@ export { sql };
 const ITEMS_PER_PAGE = 4;
 
 export async function getNextAwb(): Promise<string> {
-  const result = await sql`SELECT COUNT(*)::int AS count FROM shipments`;
-  const count = result[0]?.count || 0;
-  const nextNum = count + 1;
-  return `AWB-${String(nextNum).padStart(3, '0')}`;
+  const rows = await sql`
+    SELECT awb FROM shipments
+    WHERE awb ~ '^AWB-[0-9]+$'
+    ORDER BY awb ASC
+  `;
+
+  const usedNumbers = new Set(
+    rows.map((r) => parseInt(r.awb.replace("AWB-", ""), 10))
+  );
+
+  if (usedNumbers.size === 0) {
+    return "AWB-001";
+  }
+
+  const maxNum = Math.max(...usedNumbers);
+
+  for (let i = 1; i <= maxNum; i++) {
+    if (!usedNumbers.has(i)) {
+      return `AWB-${String(i).padStart(3, "0")}`;
+    }
+  }
+
+  return `AWB-${String(maxNum + 1).padStart(3, "0")}`;
 }
 
 const SERVICE_RATES: Record<string, number> = {
@@ -899,9 +918,7 @@ export async function saveShipment(formData: any, isUpdate = false, id?: number)
   if (!isUpdate) {
     // Auto-generate AWB if not provided
     if (!awb) {
-      const result = await sql`SELECT COUNT(*)::int AS count FROM shipments`;
-      const count = result[0]?.count || 0;
-      awb = `AWB-${String(count + 1).padStart(3, '0')}`;
+      awb = await getNextAwb();
     }
   }
 

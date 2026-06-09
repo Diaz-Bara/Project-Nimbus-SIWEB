@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import FormField, { fieldControlClass } from "@/components/ui/FormField";
 import { validateTrackingAwb } from "@/lib/validators/tracking-form";
 import { getTrackingByAwb } from "@/lib/actions";
@@ -20,6 +20,7 @@ type TrackingResponse = {
 
 export default function TrackingForm() {
   const searchParams = useSearchParams();
+  const router = useRouter();
   const [awb, setAwb] = useState("");
   const [result, setResult] = useState<TrackingResponse | null>(null);
   const [isPageLoading, setIsPageLoading] = useState(true);
@@ -61,11 +62,18 @@ export default function TrackingForm() {
     return () => clearTimeout(timer);
   }, []);
 
+  // Sinkronisasi penuh antara parameter URL dengan State React
   useEffect(() => {
     const queryAwb = searchParams.get("awb");
     if (queryAwb) {
       setAwb(queryAwb);
       void runTrack(queryAwb);
+    } else {
+      // Jika URL bersih (?awb= hilang), bersihkan seluruh form dan hilangkan card not found
+      setAwb("");
+      setNotFoundAwb(null);
+      setResult(null);
+      setAwbError(null);
     }
   }, [searchParams, runTrack]);
 
@@ -78,7 +86,9 @@ export default function TrackingForm() {
       setNotFoundAwb(null);
       return;
     }
-    await runTrack(awb);
+    
+    // Ganti pemanggilan fungsi langsung dengan mendorong data ke parameter URL
+    router.push(`/tracking?awb=${encodeURIComponent(awb.trim())}`);
   };
 
   return (
@@ -106,6 +116,16 @@ export default function TrackingForm() {
                   onChange={(e) => {
                     setAwb(e.target.value);
                     if (awbError) setAwbError(null);
+                    
+                    // UX Tambahan: Jika user menghapus teks sampai kosong lewat backspace, 
+                    // langsung hilangkan frame not found secara real-time
+                    if (!e.target.value.trim()) {
+                      setNotFoundAwb(null);
+                      setResult(null);
+                      if (searchParams.get("awb")) {
+                        router.replace("/tracking", { scroll: false });
+                      }
+                    }
                   }}
                 />
                 <button
