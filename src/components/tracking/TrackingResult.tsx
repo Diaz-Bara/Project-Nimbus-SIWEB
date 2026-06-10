@@ -39,9 +39,66 @@ function statusColor(status: string) {
   return "text-orange-500";
 }
 
+function getStepStyle(
+  stepStatus: string,
+  shipmentStatus: string,
+  isFirst: boolean
+) {
+  const s = shipmentStatus.toLowerCase();
+  const isDelivered = s.includes("deliver");
+  const isCancelled = s.includes("cancel");
+
+  if (isDelivered || isCancelled) {
+    return {
+      dotClass: isDelivered ? "bg-green-500" : "bg-red-400",
+      lineClass: "bg-gray-200",
+    };
+  }
+
+  if (isFirst) {
+    return { dotClass: "bg-blue-600", lineClass: "bg-gray-200" };
+  }
+
+  return { dotClass: "bg-gray-300", lineClass: "bg-gray-200" };
+}
+
+function formatCustomDateTime(dateStr: string) {
+  if (!dateStr) return "-";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "-";
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  const time = d.toLocaleTimeString("id-ID");
+  return `${mm}/${dd}/${yyyy}, ${time}`;
+}
+
+function formatCustomDateOnly(dateStr: string | Date | null | undefined) {
+  if (!dateStr) return "-";
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return "-";
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  return `${mm}/${dd}/${yyyy}`;
+}
+
+// 💡 Fungsi baru: Menghasilkan kalimat statis tanpa mengambil dari database
+function getStaticNote(status: string) {
+  const s = status.toLowerCase();
+  if (s.includes("receive")) return "Cargo has been received and registered.";
+  if (s.includes("sortation")) return "Cargo is being processed at the sorting facility.";
+  if (s.includes("transit")) return "Cargo is currently in transit to the next hub.";
+  if (s.includes("deliver")) return "Cargo has been delivered successfully.";
+  if (s.includes("cancel")) return "Cargo shipment has been cancelled.";
+  return "Shipment status has been updated.";
+}
+
 export default function TrackingResult({ shipment, history }: TrackingResultProps) {
   const lastLocation =
     history.length > 0 ? history[history.length - 1]?.location : undefined;
+    
+  const reversedHistory = [...history].reverse();
 
   return (
     <div className="w-full max-w-2xl mt-4 bg-white rounded-xl shadow-sm border border-gray-100 p-5">
@@ -89,9 +146,7 @@ export default function TrackingResult({ shipment, history }: TrackingResultProp
         <p>
           Shipping Date:{" "}
           <span className="font-semibold">
-            {shipment.shipping_date
-              ? new Date(shipment.shipping_date).toLocaleDateString("id-ID")
-              : "-"}
+            {formatCustomDateOnly(shipment.shipping_date)}
           </span>
         </p>
         <p>
@@ -99,10 +154,6 @@ export default function TrackingResult({ shipment, history }: TrackingResultProp
           <span className="font-semibold text-blue-600">
             {shipment.flight_code || "-"}
           </span>
-        </p>
-        <p>
-          Aircraft:{" "}
-          <span className="font-semibold">{shipment.flight_aircraft || "-"}</span>
         </p>
         {shipment.flight_status ? (
           <p>
@@ -126,27 +177,39 @@ export default function TrackingResult({ shipment, history }: TrackingResultProp
         />
       </div>
 
-      <div className="space-y-4">
-        <p className="text-xs font-semibold text-gray-400">TRACKING HISTORY</p>
-        {history.length === 0 ? (
+      <div>
+        <p className="text-xs font-semibold text-gray-400 mb-4">TRACKING HISTORY</p>
+        {reversedHistory.length === 0 ? (
           <p className="text-sm text-gray-500">No tracking logs available.</p>
         ) : (
-          history.map((item, index) => (
-            <div key={`${item.status}-${index}`} className="flex gap-3">
-              <div className="mt-1 h-3 w-3 rounded-full bg-blue-600" />
-              <div className="flex-1">
-                <p className="font-semibold text-sm">{item.status}</p>
-                <p className="text-xs text-gray-500">
-                  {item.location || "-"} - {item.note || "-"}
-                </p>
-              </div>
-              <p className="text-xs text-gray-400">
-                {item.created_at
-                  ? new Date(item.created_at).toLocaleString("id-ID")
-                  : "-"}
-              </p>
-            </div>
-          ))
+          <div className="space-y-6">
+            {reversedHistory.map((item, index) => {
+              const isFirst = index === 0; 
+              const isLastItemInList = index === reversedHistory.length - 1;
+              const { dotClass, lineClass } = getStepStyle(item.status, shipment.status, isFirst);
+
+              return (
+                <div key={`${item.status}-${index}`} className="flex gap-4">
+                  <div className="flex flex-col items-center">
+                    <div className={`w-3 h-3 rounded-full ${dotClass} mt-1`} />
+                    {!isLastItemInList && <div className={`w-[2px] h-10 ${lineClass}`} />}
+                  </div>
+
+                  <div className="flex-1">
+                    <p className="font-semibold text-sm">{item.status}</p>
+                    {/* 💡 Menggunakan kalimat statis, mengabaikan data lokasi database */}
+                    <p className="text-xs text-gray-500">
+                      {getStaticNote(item.status)}
+                    </p>
+                  </div>
+
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {formatCustomDateTime(item.created_at)}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
     </div>
