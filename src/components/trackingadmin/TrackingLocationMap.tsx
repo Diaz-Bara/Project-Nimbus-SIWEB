@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { MapContainer, Marker, Popup, TileLayer } from "react-leaflet";
+import { MapContainer, Marker, Popup, TileLayer, useMap } from "react-leaflet";
 import L from "leaflet";
 import "leaflet/dist/leaflet.css";
 
@@ -46,6 +46,18 @@ function resolveDestinationCoords(destination: string): [number, number] | null 
     }
   }
 
+  return null;
+}
+
+// 🚀 KOMPONEN BARU: Pemaksa Peta untuk Pindah Lokasi secara Dinamis
+function DynamicMapUpdater({ center }: { center: [number, number] }) {
+  const map = useMap();
+  useEffect(() => {
+    if (center) {
+      // map.setView akan memaksa peta terbang/bergeser ke koordinat baru
+      map.setView(center, map.getZoom());
+    }
+  }, [center, map]);
   return null;
 }
 
@@ -109,6 +121,9 @@ export default function TrackingLocationMap({
         className="h-full w-full"
         style={{ height: "100%", width: "100%" }}
       >
+        {/* Sisipkan updater di dalam MapContainer agar bisa mengakses instance map */}
+        <DynamicMapUpdater center={coords} />
+        
         <TileLayer
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"

@@ -21,9 +21,11 @@ export default async function EditShipmentPage(props: { params: Promise<{ id: st
         <div className="p-4"><Topbar /></div>
         <div className="px-6 pb-6 overflow-y-auto">
           <div className="mb-6 mt-2">
+            <p className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-1">Shipment Central</p>
             <h1 className="text-[28px] text-[#0a327d]">
               Shipment Central/<span className="font-bold">Manage Shipments</span>
             </h1>
+            <p className="text-sm text-gray-500 mt-1">Edit and update shipment details for an existing airway bill.</p>
           </div>
           <ShipmentForm data={shipment as any} availableCities={availableCities} />
         </div>
