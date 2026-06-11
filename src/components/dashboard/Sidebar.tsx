@@ -17,6 +17,7 @@ import {
 
 export default function Sidebar() {
   const [open, setOpen] = useState(true);
+  const [role, setRole] = useState("OPERATOR");
 
   const pathname = usePathname();
 
@@ -31,20 +32,24 @@ export default function Sidebar() {
     { name: "Users", icon: UserIcon, path: "/users" },
   ];
 
-  const [role, setRole] = useState("OPERATOR");
-
   useEffect(() => {
-    const cookies = document.cookie.split(';');
-    const roleCookie = cookies.find(c => c.trim().startsWith('nimbus_role='));
+    const cookies = document.cookie.split(";");
+
+    const roleCookie = cookies.find((c) =>
+      c.trim().startsWith("nimbus_role=")
+    );
+
     if (roleCookie) {
-      setRole(roleCookie.split('=')[1].trim());
+      const userRole = roleCookie.split("=")[1].trim();
+      setRole(userRole);
     }
   }, []);
 
-  const menu =
-    role === "ADMIN" || role === "admin" || role === "Admin" || role === "OPERATOR" || role === "operator"
-      ? [...baseMenu, ...adminMenu]
-      : baseMenu;
+  const isAdmin = role.toUpperCase() === "ADMIN";
+
+  const menu = isAdmin
+    ? [...baseMenu, ...adminMenu]
+    : baseMenu;
 
   return (
     <div
@@ -74,7 +79,10 @@ export default function Sidebar() {
 
       <ul className="space-y-2 px-2">
         {menu.map((item) => {
-          const active = pathname === item.path || (item.path !== "/" && pathname.startsWith(item.path));
+          const active =
+            pathname === item.path ||
+            (item.path !== "/" && pathname.startsWith(item.path));
+
           const Icon = item.icon;
 
           return (
@@ -91,10 +99,15 @@ export default function Sidebar() {
                   }
                 `}
               >
-                <Icon className="h-5 w-5 shrink-0" aria-hidden="true" />
+                <Icon
+                  className="h-5 w-5 shrink-0"
+                  aria-hidden="true"
+                />
 
                 {open && (
-                  <span className="ml-3 font-medium">{item.name}</span>
+                  <span className="ml-3 font-medium">
+                    {item.name}
+                  </span>
                 )}
 
                 {active && (
@@ -102,7 +115,12 @@ export default function Sidebar() {
                 )}
 
                 {!open && (
-                  <span className="absolute left-16 bg-black text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition whitespace-nowrap z-50">
+                  <span
+                    className="absolute left-16 bg-black text-white
+                    text-xs px-2 py-1 rounded opacity-0
+                    group-hover:opacity-100 transition
+                    whitespace-nowrap z-50"
+                  >
                     {item.name}
                   </span>
                 )}
@@ -131,16 +149,19 @@ export default function Sidebar() {
 
       <div className="absolute bottom-6 w-full px-3">
         <form action={logoutAction}>
-        <button
-          type="submit"
-          className="w-full flex items-center justify-center gap-3
-          bg-red-500/90 hover:bg-red-600 text-white py-3 rounded-2xl
-          font-semibold shadow-lg backdrop-blur-md
-          transition-all duration-300 hover:scale-[1.02]"
-        >
-          <ArrowLeftStartOnRectangleIcon className="h-5 w-5" aria-hidden="true" />
-          {open && <span>Logout</span>}
-        </button>
+          <button
+            type="submit"
+            className="w-full flex items-center justify-center gap-3
+            bg-red-500/90 hover:bg-red-600 text-white py-3 rounded-2xl
+            font-semibold shadow-lg backdrop-blur-md
+            transition-all duration-300 hover:scale-[1.02]"
+          >
+            <ArrowLeftStartOnRectangleIcon
+              className="h-5 w-5"
+              aria-hidden="true"
+            />
+            {open && <span>Logout</span>}
+          </button>
         </form>
       </div>
     </div>
