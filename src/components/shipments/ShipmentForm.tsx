@@ -52,7 +52,7 @@ function formatDate(value?: string | Date) {
 function uniqueCities(cities: AvailableCity[]) {
   const seen = new Set<string>();
   return cities.filter((entry) => {
-    const key = entry.city.toLowerCase();
+    const key = `${entry.code}-${entry.city.toLowerCase()}`;
     if (seen.has(key)) return false;
     seen.add(key);
     return true;
@@ -238,7 +238,7 @@ export default function ShipmentForm({ data, availableCities = [] }: ShipmentFor
           </FormField>
 
           <div className="grid grid-cols-2 gap-4">
-            <FormField label="Origin City" htmlFor="origin" required error={fieldErrors.origin}>
+            <FormField label="Origin" htmlFor="origin" required error={fieldErrors.origin}>
               <select
                 id="origin"
                 aria-invalid={Boolean(fieldErrors.origin)}
@@ -246,20 +246,20 @@ export default function ShipmentForm({ data, availableCities = [] }: ShipmentFor
                 value={form.origin}
                 onChange={(e) => updateField("origin", e.target.value)}
               >
-                <option value="">Select origin city</option>
+                <option value="">Select origin</option>
                 {form.origin &&
-                  !cityOptions.some((city) => city.city === form.origin) && (
+                  !cityOptions.some((city) => `${city.code} - ${city.city}` === form.origin) && (
                     <option value={form.origin}>{form.origin}</option>
                   )}
                 {cityOptions.map((city) => (
-                  <option key={`origin-${city.code}`} value={city.city}>
-                    {city.city}
+                  <option key={`origin-${city.code}`} value={`${city.code} - ${city.city}`}>
+                    {city.code} - {city.city}
                   </option>
                 ))}
               </select>
             </FormField>
 
-            <FormField label="Destination City" htmlFor="destination" required error={fieldErrors.destination}>
+            <FormField label="Destination" htmlFor="destination" required error={fieldErrors.destination}>
               <select
                 id="destination"
                 aria-invalid={Boolean(fieldErrors.destination)}
@@ -267,14 +267,14 @@ export default function ShipmentForm({ data, availableCities = [] }: ShipmentFor
                 value={form.destination}
                 onChange={(e) => updateField("destination", e.target.value)}
               >
-                <option value="">Select destination city</option>
+                <option value="">Select destination</option>
                 {form.destination &&
-                  !cityOptions.some((city) => city.city === form.destination) && (
+                  !cityOptions.some((city) => `${city.code} - ${city.city}` === form.destination) && (
                     <option value={form.destination}>{form.destination}</option>
                   )}
                 {cityOptions.map((city) => (
-                  <option key={`destination-${city.code}`} value={city.city}>
-                    {city.city}
+                  <option key={`destination-${city.code}`} value={`${city.code} - ${city.city}`}>
+                    {city.code} - {city.city}
                   </option>
                 ))}
               </select>

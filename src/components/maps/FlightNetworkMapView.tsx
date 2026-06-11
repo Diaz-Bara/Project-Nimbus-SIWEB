@@ -7,16 +7,28 @@ import {
   Polyline,
   Popup,
   CircleMarker,
+  Marker,
   useMap,
 } from "react-leaflet";
-import type { LatLngBoundsExpression, LatLngExpression } from "leaflet";
+import L, { type LatLngBoundsExpression, type LatLngExpression } from "leaflet";
 import "leaflet/dist/leaflet.css";
 import {
   buildNetworkRoutes,
   getFlightStatusColor,
   getAirportCoords,
+  calculateBearing,
   type NetworkFlight,
 } from "@/lib/airport-coords";
+
+const createAircraftIcon = (bearing: number, color: string) => {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="1.5" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" /></svg>`;
+  return L.divIcon({
+    html: `<div style="transform: rotate(${bearing - 90}deg); width: 24px; height: 24px;">${svg}</div>`,
+    className: "aircraft-icon",
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+  });
+};
 
 function MapBoundsFitter({ bounds }: { bounds: LatLngBoundsExpression | null }) {
   const map = useMap();
@@ -137,27 +149,46 @@ export default function FlightNetworkMapView({
             </Popup>
           </Polyline>
         )}
-        {routes.map(({ flight, origin, destination }) => (
-          <Polyline
-            key={flight.id}
-            positions={[origin, destination]}
-            pathOptions={{
-              color: getFlightStatusColor(flight.status),
-              weight: 3,
-              opacity: 0.85,
-            }}
-          >
-            <Popup>
-              <div className="text-sm">
-                <p className="font-bold text-blue-700">{flight.code}</p>
-                <p className="text-gray-600">
-                  {flight.origin_code} → {flight.destination_code}
-                </p>
-                <p className="text-gray-500">{flight.status}</p>
-              </div>
-            </Popup>
-          </Polyline>
-        ))}
+        {routes.map(({ flight, origin, destination }) => {
+          const bearing = calculateBearing(origin, destination);
+          const color = getFlightStatusColor(flight.status);
+          const progress = 0.5; // Fixed at middle for generic flight map or map to flight.progress if available
+          const cargoPosition: [number, number] = [
+            origin[0] + (destination[0] - origin[0]) * progress,
+            origin[1] + (destination[1] - origin[1]) * progress,
+          ];
+
+          return (
+            <div key={flight.id}>
+              <Polyline
+                positions={[origin, destination]}
+                pathOptions={{
+                  color: color,
+                  weight: 3,
+                  opacity: 0.85,
+                }}
+              >
+                <Popup>
+                  <div className="text-sm">
+                    <p className="font-bold text-blue-700">{flight.code}</p>
+                    <p className="text-gray-600">
+                      {flight.origin_code} → {flight.destination_code}
+                    </p>
+                    <p className="text-gray-500">{flight.status}</p>
+                  </div>
+                </Popup>
+              </Polyline>
+              <Marker position={cargoPosition} icon={createAircraftIcon(bearing, color)}>
+                <Popup>
+                  <div className="text-sm">
+                    <p className="font-bold">{flight.code}</p>
+                    <p className="text-xs text-gray-500">{flight.status}</p>
+                  </div>
+                </Popup>
+              </Marker>
+            </div>
+          );
+        })}
         {highlightedAirports.map((code) => {
           const coords = getAirportCoords(code);
           if (!coords) return null;

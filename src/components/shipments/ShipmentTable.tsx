@@ -12,6 +12,14 @@ type Shipment = {
   status: string;
 };
 
+function getStatusTextColor(status: string) {
+  const s = status.toLowerCase();
+  if (s.includes('deliver')) return "text-green-600 font-semibold";
+  if (s.includes('cancel')) return "text-red-600 font-semibold";
+  if (s.includes('transit') || s.includes('schedule')) return "text-blue-600 font-semibold";
+  return "text-gray-600 font-semibold";
+}
+
 // 💡 onCreate dan onEdit sudah dihapus dari Props karena kita menggunakan <Link>
 type Props = {
   data: Shipment[];
@@ -63,15 +71,7 @@ export default function ShipmentTable({
               <td>{item.pieces}</td>
 
               {/* STATUS */}
-              <td
-                className={
-                  item.status === "In Transit"
-                    ? "text-blue-600 font-medium"
-                    : item.status === "Scheduled"
-                    ? "text-orange-500 font-medium"
-                    : "text-gray-500 font-medium"
-                }
-              >
+              <td className={getStatusTextColor(item.status)}>
                 {item.status}
               </td>
 

@@ -18,6 +18,10 @@ type Props = {
   origin: string;
   destination: string;
   status: string;
+  originLat?: number;
+  originLng?: number;
+  destLat?: number;
+  destLng?: number;
 };
 
 export default function TrackingRouteMapDynamic(props: Props) {
