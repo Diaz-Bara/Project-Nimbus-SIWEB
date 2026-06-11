@@ -1,5 +1,13 @@
 import { fetchRecentShipments } from "@/lib/actions";
 
+function getStatusTextColor(status: string) {
+  const s = status.toLowerCase();
+  if (s.includes('deliver')) return "text-green-600 font-semibold";
+  if (s.includes('cancel')) return "text-red-600 font-semibold";
+  if (s.includes('transit') || s.includes('schedule')) return "text-blue-600 font-semibold";
+  return "text-gray-600 font-semibold";
+}
+
 export default async function CargoTable() {
   const shipments = await fetchRecentShipments(5);
 
@@ -31,7 +39,7 @@ export default async function CargoTable() {
                 <td className="py-2 text-left">{shipment.awb}</td>
                 <td>{shipment.origin}</td>
                 <td>{shipment.destination}</td>
-                <td className="text-blue-500">{shipment.status}</td>
+                <td className={getStatusTextColor(shipment.status)}>{shipment.status}</td>
                 <td>
                   {shipment.created_at
                     ? new Date(shipment.created_at).toLocaleDateString("id-ID")

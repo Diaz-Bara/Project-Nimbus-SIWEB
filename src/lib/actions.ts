@@ -17,6 +17,117 @@ const sql = postgres(process.env.POSTGRES_URL!, { ssl: 'require' });
 export { sql };
 const ITEMS_PER_PAGE = 4;
 
+
+// ==========================================
+// AIRPORTS TABLE (Single Source of Truth)
+// ==========================================
+const AIRPORT_SEED_DATA = [
+  { code: "CGK", city: "Jakarta", latitude: -6.1256, longitude: 106.6558 },
+  { code: "SIN", city: "Singapore", latitude: 1.3521, longitude: 103.8198 },
+  { code: "HKG", city: "Hong Kong", latitude: 22.308, longitude: 113.9185 },
+  { code: "NRT", city: "Tokyo", latitude: 35.772, longitude: 140.3929 },
+  { code: "DPS", city: "Denpasar", latitude: -8.7482, longitude: 115.1672 },
+  { code: "SUB", city: "Surabaya", latitude: -7.3797, longitude: 112.7872 },
+  { code: "KNO", city: "Medan", latitude: 3.6417, longitude: 98.8853 },
+  { code: "BPN", city: "Balikpapan", latitude: -1.2681, longitude: 116.8942 },
+  { code: "LHR", city: "London", latitude: 51.47, longitude: -0.4543 },
+];
+
+async function ensureAirportsSchema() {
+  await sql`
+    CREATE TABLE IF NOT EXISTS airports (
+      code TEXT PRIMARY KEY,
+      city TEXT NOT NULL,
+      latitude DOUBLE PRECISION,
+      longitude DOUBLE PRECISION
+    )
+  `;
+
+  for (const airport of AIRPORT_SEED_DATA) {
+    await sql`
+      INSERT INTO airports (code, city, latitude, longitude)
+      VALUES (${airport.code}, ${airport.city}, ${airport.latitude}, ${airport.longitude})
+      ON CONFLICT (code) DO UPDATE SET
+        city = COALESCE(airports.city, EXCLUDED.city),
+        latitude = COALESCE(airports.latitude, EXCLUDED.latitude),
+        longitude = COALESCE(airports.longitude, EXCLUDED.longitude)
+    `;
+  }
+}
+
+export async function fetchAirports() {
+  await ensureAirportsSchema();
+  try {
+    const data = await sql`
+      SELECT code, city, latitude, longitude
+      FROM airports
+      ORDER BY city ASC, code ASC
+    `;
+    return data.map((row) => ({
+      code: String(row.code),
+      city: String(row.city),
+      latitude: Number(row.latitude),
+      longitude: Number(row.longitude),
+    }));
+  } catch (error) {
+    console.error("Fetch airports error:", error);
+    return [];
+  }
+}
+
+export async function fetchAirportByCode(code: string) {
+  await ensureAirportsSchema();
+  try {
+    const data = await sql`
+      SELECT code, city, latitude, longitude
+      FROM airports
+      WHERE code = ${code.toUpperCase()}
+      LIMIT 1
+    `;
+    if (!data[0]) return null;
+    return {
+      code: String(data[0].code),
+      city: String(data[0].city),
+      latitude: Number(data[0].latitude),
+      longitude: Number(data[0].longitude),
+    };
+  } catch (error) {
+    console.error("Fetch airport by code error:", error);
+    return null;
+  }
+}
+
+/** Format airport display as "(CODE - City)" */
+function formatAirportDisplay(code: string, city: string): string {
+  if (code && city) return `${code} - ${city}`;
+  if (code) return code;
+  return city || "";
+}
+
+/** Parse "CODE - City" back into { code, city } */
+function parseAirportDisplay(value: string): { code: string; city: string } {
+  if (!value) return { code: "", city: "" };
+  const match = value.match(/^([A-Z]{2,4})\s*-\s*(.+)$/);
+  if (match) return { code: match[1], city: match[2].trim() };
+  // Fallback: if it's just a city name (legacy data)
+  return { code: "", city: value.trim() };
+}
+
+async function autoRegisterAirport(code: string, city: string) {
+  if (!code || !city) return;
+  await ensureAirportsSchema();
+  try {
+    await sql`
+      INSERT INTO airports (code, city)
+      VALUES (${code.toUpperCase()}, ${city})
+      ON CONFLICT (code) DO UPDATE SET
+        city = COALESCE(airports.city, EXCLUDED.city)
+    `;
+  } catch (error) {
+    console.error("Auto-register airport error:", error);
+  }
+}
+
 export async function getNextAwb(): Promise<string> {
   const rows = await sql`
     SELECT awb FROM shipments
@@ -355,6 +466,24 @@ async function ensureCargoSchema() {
     await sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT NOW()`;
   await sql`ALTER TABLE shipments ADD COLUMN IF NOT EXISTS updated_at TIMESTAMP DEFAULT NOW()`;
   await sql`ALTER TABLE shipment_details ADD COLUMN IF NOT EXISTS phone_number TEXT`;
+  await sql`ALTER TABLE shipment_details ADD COLUMN IF NOT EXISTS origin_code TEXT`;
+  await sql`ALTER TABLE shipment_details ADD COLUMN IF NOT EXISTS destination_code TEXT`;
+
+  // Migrate existing city-only data: set origin_code/destination_code from airports table
+  await sql`
+    UPDATE shipment_details sd
+    SET origin_code = a.code
+    FROM airports a
+    WHERE sd.origin_code IS NULL
+      AND LOWER(a.city) = LOWER(sd.origin)
+  `;
+  await sql`
+    UPDATE shipment_details sd
+    SET destination_code = a.code
+    FROM airports a
+    WHERE sd.destination_code IS NULL
+      AND LOWER(a.city) = LOWER(sd.destination)
+  `;
 
   await sql`
     CREATE TABLE IF NOT EXISTS tracking_logs (
@@ -749,26 +878,66 @@ export async function fetchFlightNetworkCities() {
 
 export async function fetchFlightsForNetworkMap() {
   await ensureFlightSchema();
+  await ensureAirportsSchema();
 
   try {
     const data = await sql`
       SELECT
-        id,
-        code,
-        COALESCE(status, 'SCHEDULED') AS status,
-        origin_code,
-        origin_city,
-        destination_code,
-        destination_city
-      FROM flights
-      WHERE origin_code IS NOT NULL
-        AND destination_code IS NOT NULL
-      ORDER BY id ASC
+        f.id,
+        f.code,
+        COALESCE(f.status, 'SCHEDULED') AS status,
+        f.origin_code,
+        f.origin_city,
+        f.destination_code,
+        f.destination_city,
+        ao.latitude AS origin_lat,
+        ao.longitude AS origin_lng,
+        ad.latitude AS dest_lat,
+        ad.longitude AS dest_lng
+      FROM flights f
+      LEFT JOIN airports ao ON ao.code = f.origin_code
+      LEFT JOIN airports ad ON ad.code = f.destination_code
+      WHERE f.origin_code IS NOT NULL
+        AND f.destination_code IS NOT NULL
+      ORDER BY f.id ASC
     `;
 
     return data as any[];
   } catch (error) {
     console.error("Fetch flights for network map error:", error);
+    return [];
+  }
+}
+
+export async function fetchAllShipmentsForMap() {
+  await ensureCargoSchema();
+  try {
+    const data = await sql`
+      SELECT
+        s.id,
+        s.awb,
+        s.status,
+        sd.origin,
+        sd.destination,
+        COALESCE(sd.origin_code, ao.code) AS origin_code,
+        COALESCE(sd.destination_code, ad.code) AS destination_code,
+        COALESCE(ao2.latitude, ao.latitude) AS origin_lat,
+        COALESCE(ao2.longitude, ao.longitude) AS origin_lng,
+        COALESCE(ad2.latitude, ad.latitude) AS dest_lat,
+        COALESCE(ad2.longitude, ad.longitude) AS dest_lng
+      FROM shipments s
+      JOIN shipment_details sd ON s.id = sd.shipment_id
+      LEFT JOIN airports ao ON LOWER(ao.city) = LOWER(sd.origin)
+      LEFT JOIN airports ad ON LOWER(ad.city) = LOWER(sd.destination)
+      LEFT JOIN airports ao2 ON ao2.code = sd.origin_code
+      LEFT JOIN airports ad2 ON ad2.code = sd.destination_code
+      WHERE COALESCE(sd.origin_code, ao.code) IS NOT NULL
+        AND COALESCE(sd.destination_code, ad.code) IS NOT NULL
+      ORDER BY s.id DESC
+    `;
+    return data as any[];
+  } catch (error) {
+    console.error("Fetch shipments for map error:", error);
     return [];
   }
 }

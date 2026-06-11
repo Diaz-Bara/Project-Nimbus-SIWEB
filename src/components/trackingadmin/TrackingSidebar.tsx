@@ -71,6 +71,10 @@ export default async function TrackingSidebar({ awb }: { awb: string }) {
             origin={shipment.origin}
             destination={shipment.destination}
             status={shipment.status}
+            originLat={shipment.origin_lat ? Number(shipment.origin_lat) : undefined}
+            originLng={shipment.origin_lng ? Number(shipment.origin_lng) : undefined}
+            destLat={shipment.dest_lat ? Number(shipment.dest_lat) : undefined}
+            destLng={shipment.dest_lng ? Number(shipment.dest_lng) : undefined}
           />
         ) : (
           <div className="h-40 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center text-xs text-gray-400">

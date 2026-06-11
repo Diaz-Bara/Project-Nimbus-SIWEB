@@ -162,64 +162,56 @@ export default function FlightFormModal({
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
-                label="Origin Code"
-                htmlFor="origin-code"
+                label="Origin (e.g. CGK - Jakarta)"
+                htmlFor="origin"
                 required
-                error={fieldErrors.origin_code}
+                error={fieldErrors.origin_code || fieldErrors.origin_city}
               >
                 <input
-                  id="origin-code"
-                  aria-invalid={Boolean(fieldErrors.origin_code)}
+                  id="origin"
+                  placeholder="CGK - Jakarta"
+                  aria-invalid={Boolean(fieldErrors.origin_code || fieldErrors.origin_city)}
                   className={inputClass("origin_code", "uppercase")}
-                  value={form.origin_code}
-                  onChange={(e) => updateField("origin_code", e.target.value.toUpperCase())}
-                />
-              </FormField>
-
-              <FormField
-                label="Origin City"
-                htmlFor="origin-city"
-                required
-                error={fieldErrors.origin_city}
-              >
-                <input
-                  id="origin-city"
-                  aria-invalid={Boolean(fieldErrors.origin_city)}
-                  className={inputClass("origin_city")}
-                  value={form.origin_city}
-                  onChange={(e) => updateField("origin_city", e.target.value)}
+                  value={form.origin_code && form.origin_city ? `${form.origin_code} - ${form.origin_city}` : (form.origin_code || form.origin_city)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const match = val.match(/^([a-zA-Z]{2,4})\s*-\s*(.+)$/);
+                    if (match) {
+                      updateField("origin_code", match[1].toUpperCase());
+                      updateField("origin_city", match[2].trim());
+                    } else {
+                      updateField("origin_code", val.toUpperCase());
+                      updateField("origin_city", "");
+                    }
+                  }}
                 />
               </FormField>
             </div>
 
             <div className="grid grid-cols-2 gap-4">
               <FormField
-                label="Destination Code"
-                htmlFor="destination-code"
+                label="Destination (e.g. DPS - Bali)"
+                htmlFor="destination"
                 required
-                error={fieldErrors.destination_code}
+                error={fieldErrors.destination_code || fieldErrors.destination_city}
               >
                 <input
-                  id="destination-code"
-                  aria-invalid={Boolean(fieldErrors.destination_code)}
+                  id="destination"
+                  placeholder="DPS - Bali"
+                  aria-invalid={Boolean(fieldErrors.destination_code || fieldErrors.destination_city)}
                   className={inputClass("destination_code", "uppercase")}
-                  value={form.destination_code}
-                  onChange={(e) => updateField("destination_code", e.target.value.toUpperCase())}
-                />
-              </FormField>
-
-              <FormField
-                label="Destination City"
-                htmlFor="destination-city"
-                required
-                error={fieldErrors.destination_city}
-              >
-                <input
-                  id="destination-city"
-                  aria-invalid={Boolean(fieldErrors.destination_city)}
-                  className={inputClass("destination_city")}
-                  value={form.destination_city}
-                  onChange={(e) => updateField("destination_city", e.target.value)}
+                  value={form.destination_code && form.destination_city ? `${form.destination_code} - ${form.destination_city}` : (form.destination_code || form.destination_city)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    const match = val.match(/^([a-zA-Z]{2,4})\s*-\s*(.+)$/);
+                    if (match) {
+                      updateField("destination_code", match[1].toUpperCase());
+                      updateField("destination_city", match[2].trim());
+                    } else {
+                      updateField("destination_code", val.toUpperCase());
+                      updateField("destination_city", "");
+                    }
+                  }}
                 />
               </FormField>
             </div>

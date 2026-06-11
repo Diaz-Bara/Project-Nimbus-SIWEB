@@ -7,47 +7,12 @@ import {
   Polyline,
   CircleMarker,
   Popup,
+  Marker,
   useMap,
 } from "react-leaflet";
-import type { LatLngBoundsExpression, LatLngExpression } from "leaflet";
+import L, { type LatLngBoundsExpression, type LatLngExpression } from "leaflet";
 import "leaflet/dist/leaflet.css";
-
-const CITY_COORDS: Record<string, [number, number]> = {
-  CGK: [-6.1256, 106.6558],
-  SIN: [1.3521, 103.8198],
-  HKG: [22.308, 113.9185],
-  NRT: [35.772, 140.3929],
-  DPS: [-8.7482, 115.1672],
-  SUB: [-7.3797, 112.7872],
-  KNO: [3.6417, 98.8853],
-  BPN: [-1.2681, 116.8942],
-  LHR: [51.47, -0.4543],
-};
-
-const CITY_ALIASES: Record<string, string> = {
-  jakarta: "CGK",
-  singapore: "SIN",
-  "hong kong": "HKG",
-  tokyo: "NRT",
-  narita: "NRT",
-  bali: "DPS",
-  denpasar: "DPS",
-  surabaya: "SUB",
-  medan: "KNO",
-  balikpapan: "BPN",
-  london: "LHR",
-};
-
-function resolveCoords(cityName: string): [number, number] | null {
-  if (!cityName) return null;
-  const upper = cityName.toUpperCase().trim();
-  if (CITY_COORDS[upper]) return CITY_COORDS[upper];
-  const lower = cityName.toLowerCase().trim();
-  for (const [alias, code] of Object.entries(CITY_ALIASES)) {
-    if (lower.includes(alias)) return CITY_COORDS[code];
-  }
-  return null;
-}
+import { getAirportCoords, getShipmentStatusColor, calculateBearing } from "@/lib/airport-coords";
 
 function interpolatePosition(
   origin: [number, number],
@@ -70,14 +35,6 @@ function getProgress(status: string): number {
   return 0.1;
 }
 
-function getStatusColor(status: string): string {
-  const s = status.toLowerCase();
-  if (s.includes("deliver")) return "#22c55e";
-  if (s.includes("cancel")) return "#ef4444";
-  if (s.includes("transit")) return "#3b82f6";
-  return "#f59e0b";
-}
-
 function BoundsFitter({ bounds }: { bounds: LatLngBoundsExpression | null }) {
   const map = useMap();
   const fitted = useRef(false);
@@ -94,14 +51,39 @@ type Props = {
   origin: string;
   destination: string;
   status: string;
+  originLat?: number;
+  originLng?: number;
+  destLat?: number;
+  destLng?: number;
 };
 
-export default function TrackingRouteMapClient({ origin, destination, status }: Props) {
-  const originCoords = useMemo(() => resolveCoords(origin), [origin]);
-  const destinationCoords = useMemo(() => resolveCoords(destination), [destination]);
+// Aircraft icon with dynamic rotation support
+const createAircraftIcon = (bearing: number, color: string) => {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="${color}" stroke="white" stroke-width="1.5" class="w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" /></svg>`;
+  return L.divIcon({
+    html: `<div style="transform: rotate(${bearing - 90}deg); width: 24px; height: 24px;">${svg}</div>`,
+    className: "aircraft-icon",
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+  });
+};
+
+export default function TrackingRouteMapClient({ origin, destination, status, originLat, originLng, destLat, destLng }: Props) {
+  const originCoords: [number, number] | null = useMemo(() => {
+    if (originLat && originLng) return [originLat, originLng];
+    // Fallback: parse code from "CODE - City"
+    const match = origin.match(/^([a-zA-Z]{2,4})\s*-/);
+    return getAirportCoords(match ? match[1] : origin);
+  }, [origin, originLat, originLng]);
+
+  const destinationCoords: [number, number] | null = useMemo(() => {
+    if (destLat && destLng) return [destLat, destLng];
+    const match = destination.match(/^([a-zA-Z]{2,4})\s*-/);
+    return getAirportCoords(match ? match[1] : destination);
+  }, [destination, destLat, destLng]);
 
   const progress = getProgress(status);
-  const cargoColor = getStatusColor(status);
+  const routeColor = getShipmentStatusColor(status);
 
   const cargoPosition: [number, number] | null = useMemo(() => {
     if (!originCoords || !destinationCoords) return null;
@@ -123,6 +105,11 @@ export default function TrackingRouteMapClient({ origin, destination, status }: 
     return originCoords ?? destinationCoords ?? [2, 110];
   }, [originCoords, destinationCoords]);
 
+  const bearing = useMemo(() => {
+    if (!originCoords || !destinationCoords) return 0;
+    return calculateBearing(originCoords, destinationCoords);
+  }, [originCoords, destinationCoords]);
+
   if (!originCoords || !destinationCoords) {
     return (
       <div className="h-40 rounded-lg bg-gray-50 border border-gray-100 flex items-center justify-center text-sm text-gray-400">
@@ -138,66 +125,62 @@ export default function TrackingRouteMapClient({ origin, destination, status }: 
         center={mapCenter}
         zoom={4}
         className="h-full w-full"
-        scrollWheelZoom={false}
         zoomControl={false}
-        attributionControl={false}
+        scrollWheelZoom={false}
       >
         <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
         />
         <BoundsFitter bounds={bounds} />
 
-        {/* Garis rute penuh abu-abu putus */}
         <Polyline
           positions={[originCoords, destinationCoords]}
-          pathOptions={{ color: "#cbd5e1", weight: 2, dashArray: "6 5", opacity: 0.8 }}
+          pathOptions={{
+            color: routeColor,
+            weight: 3,
+            opacity: 0.8,
+            dashArray: "6 6",
+          }}
         />
 
-        {/* Garis progress biru solid */}
-        {cargoPosition && (
-          <Polyline
-            positions={[originCoords, cargoPosition]}
-            pathOptions={{ color: "#2563eb", weight: 4, opacity: 0.95 }}
-          />
-        )}
-
-        {/* Titik origin - hijau */}
+        {/* Start Point */}
         <CircleMarker
           center={originCoords}
-          radius={7}
-          pathOptions={{ color: "#1d4ed8", fillColor: "#22c55e", fillOpacity: 0.95, weight: 2 }}
+          radius={5}
+          pathOptions={{
+            color: "#1d4ed8",
+            fillColor: "#3b82f6",
+            fillOpacity: 1,
+            weight: 2,
+          }}
         >
-          <Popup>
-            <span className="text-sm font-semibold text-green-700">Origin</span><br />
-            <span className="text-xs text-gray-600">{origin}</span>
-          </Popup>
+          <Popup className="text-xs font-semibold">{origin}</Popup>
         </CircleMarker>
 
-        {/* Titik destination - oranye */}
+        {/* End Point */}
         <CircleMarker
           center={destinationCoords}
-          radius={7}
-          pathOptions={{ color: "#1d4ed8", fillColor: "#f97316", fillOpacity: 0.95, weight: 2 }}
+          radius={5}
+          pathOptions={{
+            color: "#1d4ed8",
+            fillColor: "#f97316",
+            fillOpacity: 1,
+            weight: 2,
+          }}
         >
-          <Popup>
-            <span className="text-sm font-semibold text-orange-600">Destination</span><br />
-            <span className="text-xs text-gray-600">{destination}</span>
-          </Popup>
+          <Popup className="text-xs font-semibold">{destination}</Popup>
         </CircleMarker>
 
-        {/* Posisi cargo saat ini */}
-        {cargoPosition && (
-          <CircleMarker
-            center={cargoPosition}
-            radius={9}
-            pathOptions={{ color: "#fff", fillColor: cargoColor, fillOpacity: 1, weight: 2.5 }}
-          >
-            <Popup>
-              <span className="text-sm font-semibold">Cargo Position</span><br />
-              <span className="text-xs text-gray-600">{status}</span>
+        {/* Aircraft Icon representing shipment location */}
+        {cargoPosition && progress > 0 && progress < 1 && (
+          <Marker position={cargoPosition} icon={createAircraftIcon(bearing, routeColor)}>
+             <Popup>
+              <div className="text-xs text-center">
+                <p className="font-bold">{status}</p>
+              </div>
             </Popup>
-          </CircleMarker>
+          </Marker>
         )}
       </MapContainer>
     </div>

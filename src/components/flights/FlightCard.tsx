@@ -41,8 +41,8 @@ export default function FlightCard({
 
       {/* FROM */}
       <div className="text-center">
-        <p className="font-semibold">{flight.origin_code}</p>
-        <p className="text-xs text-gray-400">{flight.origin_city}</p>
+        <p className="font-semibold text-xs text-gray-500">ORIGIN</p>
+        <p className="font-bold">({flight.origin_code} - {flight.origin_city})</p>
         <p className="text-xs">{flight.departure_time}</p>
       </div>
 
@@ -58,8 +58,8 @@ export default function FlightCard({
 
       {/* TO */}
       <div className="text-center">
-        <p className="font-semibold">{flight.destination_code}</p>
-        <p className="text-xs text-gray-400">{flight.destination_city}</p>
+        <p className="font-semibold text-xs text-gray-500">DESTINATION</p>
+        <p className="font-bold">({flight.destination_code} - {flight.destination_city})</p>
         <p className="text-xs">{flight.arrival_time}</p>
       </div>
 
